@@ -1,0 +1,15 @@
+* Direktkreditverwaltung mit einem Standalon-Programm und Gnucash-Backend
+
+Ziel ist ein lokal laufendes Programm (kein Webservice) zur
+Direktkreditverwaltung.  Als Backend soll eine GnuCash-Datenbank dienen, die
+auch von GnuCash geöffnet und verarbeitet werden kann.
+
+* Anforderungen
+** Installation
+- Einfach installierbar über =setup.py= oder =pip3 install=.
+** Export- und Reportoptionen
+- Weiterbearbeitung der Darlehenskonten mit GnuCash.
+- Export der Konten nach ods.
+- Auflistung und Export nach nächsten Fälligkeiten.
+
+
