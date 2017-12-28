@@ -4,6 +4,8 @@ import sys
 
 from PyQt5 import QtGui, QtWidgets
 
+from . import mainwindow
+
 def _get_file_name(filename=None):
     """Returns a valid file name, or None.
 
@@ -52,3 +54,5 @@ def start(filename=None):
         print("Kein Dateiname angegeben, Programm wird beendet")
         sys.exit(1)
     print(filename)
+    window = mainwindow.MainWindow(filename)
+    app.exec_()
