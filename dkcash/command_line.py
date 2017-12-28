@@ -21,4 +21,9 @@ def main():
     parser = _create_parser()
     args = parser.parse_args()
 
-    return mainapp.start(filename=args.gnucash_file)
+    filename=args.gnucash_file
+    if not filename is None:
+        filename.close()
+        filename = filename.name
+
+    return mainapp.start(filename)
