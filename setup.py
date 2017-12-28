@@ -15,9 +15,10 @@ setup(
     author_email = "quazgar@posteo.de",
     description = ("Direktkreditverwaltung mit GnuCash-Backend."),
     license = "GPLv3+",
-    keywords = "example documentation tutorial",
+    keywords = "Direktkreditverwaltung GnuCash MHS",
     # url = "http://packages.python.org/an_example_pypi_project",
-    packages=['dkcash'], #, 'tests'],
+    # packages=['dkcash'], #, 'tests'],
+    packages=setuptools.find_packages(),
     entry_points = {
         'console_scripts': [
             'dkcash = dkcash.command_line:main',
