@@ -27,4 +27,4 @@ Qt als GUI-Toolkit über PyQt, wird auf allen üblichen Systemen unterstützt.
 - Extra-Tabellen in Datenbank für:
   - Kreditgeber*innen: Name, Kontaktdaten, Einverständnis für Newsletter
   - Kreditverträge: Vertragsnummer, Datum, Laufzeitinformationen
-
+  Details zum Datenbankschema sind in =db_schema.org= aufgeführt.

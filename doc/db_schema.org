@@ -1,0 +1,40 @@
+* The database tables
+The additional tables are:
+** creditors
+| name        | type     | required | default | comment                 |
+|-------------+----------+----------+---------+-------------------------|
+| creditor_id | str(36)  | True     |         | auto-generated          |
+|-------------+----------+----------+---------+-------------------------|
+| name        | str(100) | True     |         |                         |
+| address1    | str(100) | True     |         |                         |
+| address2    | str(100) | False    |         |                         |
+| address3    | str(100) | False    |         |                         |
+| address4    | str(100) | False    |         |                         |
+| phone       | str(100) | False    |         |                         |
+| email       | str(100) | False    |         | must be a valid email   |
+| newsletter  | bool     | True     | False   | may newsletter be sent? |
+
+** contracts
+| name              | type            | required | default | comment                   |
+|-------------------+-----------------+----------+---------+---------------------------|
+| contract_id       | str(10)         | True     |         | as on written contract    |
+|-------------------+-----------------+----------+---------+---------------------------|
+| creditor          | cred.cred_id    | True     |         | foreign key               |
+| account           | accounts.guid   | True     |         | foreign key               |
+| date              | str(YYYY-MM-DD) | True     |         | last signature            |
+| amount            | float           | True     |         |                           |
+| interest          | float           | True     |         | as percent                |
+| interest_payment  | str [1]         | True     |         |                           |
+| version           | str             | False    |         |                           |
+|-------------------+-----------------+----------+---------+---------------------------|
+| period_type       | str [2]         | True     |         |                           |
+| period_notice     | str(YYYY-MM-DD) | [3]      |         |                           |
+| period_end        | str(YYYY-MM-DD) | [3]      |         |                           |
+|-------------------+-----------------+----------+---------+---------------------------|
+| cancellation_date | str(YYYY-MM-DD) | False    | NULL    | date of end of contract   |
+| active            | bool            | True     | True    | after cancellation: False |
+
+1. One of: payout, cumulative, reinvest
+2. One of: fixed_duration, fixed_period_notice, initial_plus_n
+3. The required columns in this section depend on the period type, the period
+   type also defines the meaning of these columns.
