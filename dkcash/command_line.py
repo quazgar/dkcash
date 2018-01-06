@@ -17,7 +17,6 @@ def _create_parser():
     return parser
 
 def main():
-    print("main")
     parser = _create_parser()
     args = parser.parse_args()
 

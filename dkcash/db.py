@@ -10,10 +10,6 @@ from sqlalchemy import types as sqt
 import piecash
 from piecash.core.account import AccountType
 
-# # might not even be relevant for sqlite.
-# _STR_LEN=100
-
-
 class DKDatabase:
     """Wrapper around the (modified) GnuCash database."""
 
@@ -42,8 +38,6 @@ class DKDatabase:
             sch.Column('newsletter', sqt.Boolean, default=False,
                        nullable=False),
         )
-        # creditor_col = cred_tab.columns["creditor_id"]
-        # embed()
         contracts_tab = sch.Table(
             "contracts", md,
             sch.Column('contract_id', sqt.String, primary_key=True),
