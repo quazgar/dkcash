@@ -33,7 +33,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if (os.path.exists(filename)
             and os.stat(filename).st_size == 0):
             os.remove(filename)
-        self._db = db.DKDatabase(filename)
+        self._db = db.DKDatabase(filename, sample_entries=True)
 
     def _init_ui(self):
         # global settings

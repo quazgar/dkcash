@@ -5,6 +5,7 @@ import os
 from IPython import embed
 
 from sqlalchemy import null
+from sqlalchemy.sql import expression  as sqe
 from sqlalchemy import schema as sch
 from sqlalchemy import types as sqt
 import piecash
@@ -12,14 +13,15 @@ from piecash.core.account import AccountType
 
 class DKDatabase:
     """Wrapper around the (modified) GnuCash database."""
-
-    def __init__(self, filename):
+    def __init__(self, filename, sample_entries=False):
         if os.path.exists(filename):
             self.book = piecash.open_book(filename,
                                           readonly=False)
         else:
             self.book = piecash.create_book(sqlite_file=filename)
         self._enrich_database()
+        if sample_entries:
+            self._add_sample_entries()
 
     def _enrich_database(self):
         """Add the necessary extra tables if they don't exist yet."""
@@ -59,4 +61,11 @@ class DKDatabase:
         md.create_all(conn.engine)
         print("DB enriched")
 
+    def _add_sample_entries(self):
+        conn = self.book.session.connection()
+        md = sch.MetaData(bind=conn, reflect=True)
+        # Add a creditor and two contracts
+        cred1 = sqe.insert() # FIXME Doesn't work yet.
+        md.create_all(conn.engine)
+        print("DB sample entries added")
 
