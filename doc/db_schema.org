@@ -1,3 +1,8 @@
+* GnuCash accounts
+Requirements for the GnuCash account structure are specified here.  The GnuCash
+account structure must contain at least:
+
+
 * The database tables
 The additional tables are:
 ** creditors
