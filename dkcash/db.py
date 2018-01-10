@@ -121,7 +121,7 @@ class DKDatabase:
         )
         embed()
         contr1 = Contract(
-            contract_id=str(uuid.uuid4()),
+            contract_id="23",
             creditor=cred1,
         )
         session.add(cred1)
