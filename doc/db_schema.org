@@ -17,6 +17,9 @@ transaction go to or come from.  This account will be a child to the
 =Direktkredite= account, its account code will the concatenation of the parent
 account code and the contract ID.
 
+If the creditor chose to collect the interests with neither immediate pay-out
+nor re-investment, the contract account has another sub-account for those
+collected interests.
 
 * The database tables
 The additional tables are:
