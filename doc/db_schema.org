@@ -3,11 +3,13 @@ Requirements for the GnuCash account structure are specified here.
 
 ** Base accounts
 The GnuCash account structure must contain at least the following:
-| name          | type   | description                    |
-|---------------+--------+--------------------------------|
-| Direktkredite | Asset  | parent to the contracts        |
-| DK-Herkunft   | Asset  | source and sink to the credits |
-| Kreditzinsen  | Income | interests                      |
+| name          | type   | description                     |
+|---------------+--------+---------------------------------|
+| Direktkredite | Asset  | parent to the contracts         |
+| DK-Herkunft   | Asset  | source and sink for the credits |
+| Kreditzinsen  | Income | interests come from here        |
+
+If these accounts do not exist yet, they will be created in the top level.
 
 ** Contract accounts
 There will be exactly one asset account for each contract, where all the
