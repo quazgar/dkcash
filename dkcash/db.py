@@ -11,6 +11,7 @@ e.g. `object_to_validate`.  This probably means that content similar to
 
 import os
 import uuid
+import datetime
 
 from IPython import embed
 
@@ -25,7 +26,8 @@ from sqlalchemy.sql import expression as sqe
 from sqlalchemy import schema as sch
 from sqlalchemy import types as sqt
 import piecash
-from piecash.core.account import AccountType
+
+from piecash.core.account import AccountType, Account
 
 from .piecash_compat import DeclarativeBase as PCCDeclarativeBase
 
@@ -33,13 +35,17 @@ class DKDatabase:
     """Wrapper around the (modified) GnuCash database."""
     def __init__(self, filename, sample_entries=False):
         if os.path.exists(filename):
+            print("Opening GnuCash database.")
             self.book = piecash.open_book(filename,
                                           readonly=False)
         else:
+            print("Creating GnuCash database.")
             self.book = piecash.create_book(sqlite_file=filename)
         self._enrich_database()
         if sample_entries:
+            print("Adding sample entries.")
             self._add_sample_entries()
+        # embed()
 
     def _enrich_database(self):
         """Add the necessary extra accounts and tables if necessary."""
@@ -50,6 +56,7 @@ class DKDatabase:
         Base = declarative_base(bind=conn, metadata=md)
         class Creditor(Base):
             __tablename__ = "creditors"
+            __table_args__ = {'extend_existing': True}
             creditor_id = Column(String, primary_key=True)
             name = Column(String, nullable=False)
             address1 = Column(String, nullable=False)
@@ -62,6 +69,7 @@ class DKDatabase:
 
         class Contract(Base):
             __tablename__ = "contracts"
+            __table_args__ = {'extend_existing': True}
             contract_id = Column(String, primary_key=True)
             creditor = Column(ForeignKey("creditors.creditor_id"),
                        nullable=False)
@@ -77,31 +85,43 @@ class DKDatabase:
             cancellation_date = Column(DateTime, default=null())
             active = Column(Boolean, nullable=False)
 
-        cred1 = Creditor(
-            creditor_id=str(uuid.uuid4()),
-            name="Newly newt",
-            address1="New Street 1",
-            address2="12345 Irgendwo",
-            newsletter=True
-        )
-
         Base.metadata.create_all(conn.engine)
 
         print("DB enriched")
 
     def _init_accounts(self):
-        acc = Account(name="My account",
-                      type="ASSET",
-                      parent=book.root_account,
-                      commodity=EUR,
-                      placeholder=True,)
-        subacc = Account(name="My sub account",
-                         type="BANK",
-                         parent=acc,
-                         commodity=EUR,
-                         commodity_scu=1000,
-                         description="my bank account",
-                         code="FR013334...",)
+        EUR = self.book.commodities.get(mnemonic="EUR")
+        self._conditional_add_account(
+            name="Direktkredite",
+            code="10000",
+            placeholder=True)
+        self._conditional_add_account(
+            name="DK-Herkunft",
+            code="20000",
+        )
+        self._conditional_add_account(
+            name="Kreditzinsen",
+            type="INCOME",
+            code="30000",
+        )
+        self.book.save()
+
+    def _conditional_add_account(self, name,
+                                 type="ASSET", parent=None, commodity="EUR",
+                                 code=None, placeholder=True):
+        if parent is None:
+            parent = self.book.root_account
+        query = self.book.session.query(Account).filter(
+            Account.name.like("%{}".format(name)),
+            Account.type==type,
+            Account.parent==parent)
+        if query.count() == 1:
+            return
+        comm = self.book.commodities.get(mnemonic=commodity)
+        acc = Account(name=name, type=type, parent=parent, commodity=comm,
+                      code=code, placeholder=placeholder)
+        print("Creating account {name}".format(name=name))
+        self.book.save()
 
     def _add_sample_entries(self):
         session = self.book.session
@@ -119,14 +139,22 @@ class DKDatabase:
             address2="12345 Irgendwo",
             newsletter=True
         )
-        embed()
         contr1 = Contract(
             contract_id="23",
             creditor=cred1,
+            account=self.book.session.query(Account).filter(
+                Account.name.like("%Direktkredite")).first(),
+            date=datetime.date.today(),
+            amount=3.14,
+            interest=0.00,
+            version="0.1",
+            period_type="NONE",
+            active=True
         )
-        session.add(cred1)
-        session.commit()
         embed()
+        session.add(cred1)
+        session.add(contr1)
+        session.commit()
         # cred1 = sqe.insert(md) # FIXME Doesn't work yet.
         # md.create_all(conn.engine)
         print("DB sample entries added")

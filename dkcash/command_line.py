@@ -1,7 +1,7 @@
 
 import argparse
 
-# import IPython; IPython.embed()
+from IPython import embed
 from dkcash.gui import mainapp
 
 
@@ -10,7 +10,7 @@ def _create_parser():
         description='Dieses Programm verwaltet Direktkredite.')
     parser.add_argument(
         'gnucash_file', nargs="?",
-        type=argparse.FileType(mode="w"),
+        type=argparse.FileType(mode="a"),
         default=None,
         help='Dateiname der Gnucash-Datei zur Direktkredit-Verwaltung.',
     )

@@ -54,4 +54,4 @@ def start(filename=None):
         print("Kein Dateiname angegeben, Programm wird beendet")
         sys.exit(1)
     window = mainwindow.MainWindow(filename)
-    app.exec_()
+    # app.exec_()
