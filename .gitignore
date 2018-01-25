@@ -1,3 +1,6 @@
 # compiled python stuff
 __pycache__
 *.pyc
+
+# testing data
+*.gnucash
