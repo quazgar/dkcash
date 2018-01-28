@@ -54,6 +54,7 @@ class DKDatabase:
         conn = session.connection()
         md = sch.MetaData(bind=conn, reflect=True)
         Base = declarative_base(bind=conn, metadata=md)
+
         class Creditor(Base):
             __tablename__ = "creditors"
             __table_args__ = {'extend_existing': True}
@@ -72,7 +73,7 @@ class DKDatabase:
             __table_args__ = {'extend_existing': True}
             contract_id = Column(String, primary_key=True)
             creditor = Column(ForeignKey("creditors.creditor_id"),
-                       nullable=False)
+                              nullable=False)
             account = Column(ForeignKey("accounts.guid"), nullable=False)
             date = Column(DateTime, nullable=False)
             amount = Column(DECIMAL(2), nullable=False)
@@ -139,19 +140,24 @@ class DKDatabase:
             address2="12345 Irgendwo",
             newsletter=True
         )
+        dk_account = self.book.session.query(Account).filter(
+            Account.name.like("%Direktkredite")).first()
+        # print(dk_account)
         contr1 = Contract(
             contract_id="23",
-            creditor=cred1,
-            account=self.book.session.query(Account).filter(
-                Account.name.like("%Direktkredite")).first(),
+            creditor=cred1.creditor_id,
+            account=dk_account.guid,
             date=datetime.date.today(),
             amount=3.14,
             interest=0.00,
+            interest_payment="never",
             version="0.1",
             period_type="NONE",
+            period_notice=datetime.date.today(),
+            period_end=datetime.date.today(),
+            cancellation_date=datetime.date.today(),
             active=True
         )
-        embed()
         session.add(cred1)
         session.add(contr1)
         session.commit()
