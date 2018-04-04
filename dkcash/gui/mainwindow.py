@@ -47,6 +47,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.contract_detail_w = None
         self.transaction_detail_w = None
 
+        # arrange widgets in tabs
+        self.tabs = QtWidgets.QTabWidget(self)
+        self.tabs.addTab(self.creditors_w, "Kreditgeber*innen")
+
         # connect signals and slots
         self._connect_everything()
 

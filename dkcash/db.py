@@ -18,6 +18,7 @@ from IPython import embed
 from sqlalchemy import (null,
                         Column, ForeignKey,
                         Boolean, DateTime, DECIMAL, Float, Integer, String,
+                        exc,
                         )
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.automap import automap_base
@@ -158,12 +159,22 @@ class DKDatabase:
             cancellation_date=datetime.date.today(),
             active=True
         )
+        # TODO Try to find a version which adds only if it does not exist yet.
         session.add(cred1)
         session.add(contr1)
-        session.commit()
+        try:
+            session.commit()
+            print("DB sample entries added")
+        except exc.IntegrityError as integr_err:
+            if "UNIQUE" in integr_err.args[0]:
+                print("""Adding sample entries failed because database already
+contained some of them.  This warning may be harmless.""")
+            else:
+                print("""There was an error with the database integrity:
+{}""".format(
+                integr_err))
         # cred1 = sqe.insert(md) # FIXME Doesn't work yet.
         # md.create_all(conn.engine)
-        print("DB sample entries added")
 
 user = relationship("User", back_populates="addresses")
 
