@@ -9,7 +9,8 @@ The GnuCash account structure must contain at least the following:
 | DK-Herkunft   | Asset  | source and sink for the credits |
 | Kreditzinsen  | Income | interests come from here        |
 
-If these accounts do not exist yet, they will be created in the top level.
+If these accounts do not exist yet, they will be created below the specified
+account.
 
 ** Contract accounts
 There will be exactly one asset account for each contract, where all the
@@ -22,7 +23,8 @@ nor re-investment, the contract account has another sub-account for those
 collected interests.
 
 * The database tables
-The additional tables are:
+For storing loan specific information, a few new tables are necessary, and
+created if they do not exist yet.  These additional tables are:
 ** creditors
 | name        | type     | required | default | comment                 |
 |-------------+----------+----------+---------+-------------------------|
@@ -38,24 +40,24 @@ The additional tables are:
 | newsletter  | bool     | True     | False   | may newsletter be sent? |
 
 ** contracts
-| name              | type            | required | default | comment                   |
-|-------------------+-----------------+----------+---------+---------------------------|
-| contract_id       | str(10)         | True     |         | as on written contract    |
-|-------------------+-----------------+----------+---------+---------------------------|
-| creditor          | cred.cred_id    | True     |         | foreign key               |
-| account           | accounts.guid   | True     |         | foreign key               |
-| date              | str(YYYY-MM-DD) | True     |         | last signature            |
-| amount            | float           | True     |         |                           |
-| interest          | float           | True     |         | as percent                |
-| interest_payment  | str [1]         | True     |         |                           |
-| version           | str             | False    |         |                           |
-|-------------------+-----------------+----------+---------+---------------------------|
-| period_type       | str [2]         | True     |         |                           |
-| period_notice     | str(YYYY-MM-DD) | [3]      |         |                           |
-| period_end        | str(YYYY-MM-DD) | [3]      |         |                           |
-|-------------------+-----------------+----------+---------+---------------------------|
-| cancellation_date | str(YYYY-MM-DD) | False    | NULL    | date of end of contract   |
-| active            | bool            | True     | True    | after cancellation: False |
+| name              | type            | required | default | comment           |
+|-------------------+-----------------+----------+---------+-------------------|
+| contract_id       | str(10)         | True     |         | same as on paper  |
+|-------------------+-----------------+----------+---------+-------------------|
+| creditor          | cred.cred_id    | True     |         | foreign key       |
+| account           | accounts.guid   | True     |         | foreign key       |
+| date              | str(YYYY-MM-DD) | True     |         | last signature    |
+| amount            | float           | True     |         |                   |
+| interest          | float           | True     |         | as percent        |
+| interest_payment  | str [1]         | True     |         |                   |
+| version           | str             | False    |         |                   |
+|-------------------+-----------------+----------+---------+-------------------|
+| period_type       | str [2]         | True     |         |                   |
+| period_notice     | str(YYYY-MM-DD) | [3]      |         |                   |
+| period_end        | str(YYYY-MM-DD) | [3]      |         |                   |
+|-------------------+-----------------+----------+---------+-------------------|
+| cancellation_date | str(YYYY-MM-DD) | False    | NULL    | end of contract   |
+| active            | bool            | True     | True    | False if canceled |
 
 1. One of: payout, cumulative, reinvest
 2. One of: fixed_duration, fixed_period_notice, initial_plus_n

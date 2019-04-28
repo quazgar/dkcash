@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+"""DKCash, the loan management program using a GnuCash database.
+"""
+
+import argparse
+from dkcashlib import dkdata
+
+def _parse_arguments():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('-f', '--file', type=str, default="dkcash.gnucash",
+                        help="The GnuCash database file")
+
+    return parser.parse_args()
+
+def main():
+    """The main function of this script."""
+    args = _parse_arguments()
+    print(args)
+    data = dkdata.DKData(gnucash_file=args.file)
+
+if __name__ == "__main__":
+    main()

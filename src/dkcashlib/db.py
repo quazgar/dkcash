@@ -30,7 +30,7 @@ import piecash
 
 from piecash.core.account import AccountType, Account
 
-from .piecash_compat import DeclarativeBase as PCCDeclarativeBase
+from piecash_compat import DeclarativeBase as PCCDeclarativeBase
 
 class DKDatabase:
     """Wrapper around the (modified) GnuCash database."""
