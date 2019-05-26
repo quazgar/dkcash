@@ -3,14 +3,14 @@ Requirements for the GnuCash account structure are specified here.
 
 ** Base accounts
 The GnuCash account structure must contain at least the following:
-| name          | type   | description                     |
-|---------------+--------+---------------------------------|
-| Direktkredite | Asset  | parent to the contracts         |
-| DK-Herkunft   | Asset  | source and sink for the credits |
-| Kreditzinsen  | Income | interests come from here        |
+| name               | type      | description                     |
+|--------------------+-----------+---------------------------------|
+| Direktkredite      | Liability | parent to the contracts         |
+| DK-Ausgleich       | Asset     | source and sink for the credits |
+| Direktkreditzinsen | Expense   | interests go here               |
 
 If these accounts do not exist yet, they will be created below the specified
-account.
+accounts.
 
 ** Contract accounts
 There will be exactly one asset account for each contract, where all the
@@ -21,6 +21,15 @@ account code and the contract ID.
 If the creditor chose to collect the interests with neither immediate pay-out
 nor re-investment, the contract account has another sub-account for those
 collected interests.
+
+** Booking
+
+| Action              | To            | From               |
+|---------------------+---------------+--------------------|
+| Increasing a loan   | Direktkredite | DK-Ausgleich       |
+| Booking interest    | Direktkredite | Direktkreditzinsen |
+| Paying out interest | DK-Ausgleich  | Direktkredite      |
+| Paying back a loan  | DK-Ausgleich  | Direktkredite      |
 
 * The database tables
 For storing loan specific information, a few new tables are necessary, and

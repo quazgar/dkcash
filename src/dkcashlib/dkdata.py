@@ -11,9 +11,12 @@ opening and closing of the database connection on demand may be necessary.
 import functools
 import inspect
 import os
+import sys
 from warnings import warn
 
 import piecash
+import sqlalchemy
+from sqlalchemy.ext.automap import automap_base
 
 _open_books = dict()
 
@@ -52,12 +55,26 @@ def _book_open(func):
     return wrap
 
 class DKData:
-    def __init__(self, gnucash_file="dkcash_data.sql", base_account=None):
+
+    account_params = {"dk": {"name": "Direktkredite",
+                             "type": "LIABILITY",
+                             "placeholder": 1},
+                      "ausgleich": {"name": "DK-Ausgleich",
+                                    "type": "ASSET",
+                                    "description":
+                                    "Ausgleichskonto für die Direktkredite"},
+                      "zinsen": {"name": "Direktkreditzinsen",
+                                 "type": "EXPENSE",
+                                 "placeholder": 1},
+    }
+    
+    def __init__(self, gnucash_file="dkcash_data.sql",
+                 base_dk=None, base_ausgleich=None, base_zinsen=None):
         """Represents the DKCash data.
 
 Parameters
 ----------
-gnucash_file : String, optional.
+gnucash_file : String, optional
     File name of the GnuCash file, default value is "dkcash_data".  If the file
     does not exist yet, it is created.
 
@@ -71,7 +88,9 @@ base_account : String, optional
         if not os.path.exists(gnucash_file):
             self._create_gnucash_file()
 
-        self._base_account = base_account
+        self._base_dk = base_dk
+        self._base_ausgleich = base_ausgleich
+        self._base_zinsen = base_zinsen
         self._init_gnucash()
         self._init_tables()
 
@@ -86,30 +105,73 @@ The GnuCash file must not exist yet."""
     def _init_gnucash(self, book=None):
         """Initialize the GnuCash database with the necessary accounts."""
         EUR = book.commodities.get(mnemonic="EUR")
-        parent = self._get_base_account()
-        print(parent)
-        acc_direktkredite
-
-    def _init_tables(self):
-        """Initialize the GnuCash database with extra tables."""
-        print("_init_tables")
+        parent_dk = self._init_account(parent=self._base_dk,
+                                       params=DKData.account_params["dk"])
+        parent_ausgleich = self._init_account(
+            parent=self._base_ausgleich,
+            params=DKData.account_params["ausgleich"])
+        parent_zinsen = self._init_account(
+            parent=self._base_zinsen,
+            params=DKData.account_params["zinsen"])
 
     @_book_open
-    def _get_base_account(self, book=None):
-        """Returns the base account for this object.
+    def _init_tables(self, book=None):
+        """Initialize the GnuCash database with extra tables."""
+        print("_init_tables")
+        print(self._gnucash_file)
+        engine = book.session.connection().engine
+        Base = automap_base()
+
+        Base.prepare(engine, reflect=True)
+        if not "contracts" in Base.classes.__dir__():
+            class Contract(Base):
+                __tablename__ = "contracts"
+                id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+                lender = sqlalchemy.Column(sqlalchemy.String)
+            Contract.metadata.create_all(bind=engine)
+
+        # acc1 = Base.classes.accounts(name="Hello")
+        # print(acc1.name)
+
+            
+        import IPython; IPython.embed()
+
+
+    @_book_open
+    def _init_account(self, parent, params, book=None):
+        """Initializes the account given by `params`, if it does not exist yet.
+
+Parameters
+----------
+parent : String
+    The parent account.
+
+params : dict
+    Parameters defining the account that will be initialized (if it does not
+    exist yet).
 
 Returns
 -------
-out : The base account, or None if if there is no such account.
+out : The account specified by `params`
         """
-        if self._base_account is None or len(self._base_account) == 0:
-            return book.root_account
+        if parent is None or len(parent) == 0:
+            base = book.root_account
+        else:
+            try:
+                base = [x for x in book.accounts
+                       if x.fullname == parent][0]
+            except IndexError:
+                print("Cannot find base account {}.".format(parent))
+                sys.exit(1)
 
+        # Test if the target account exists already
+        name = params["name"]
         try:
-            acc = [x for x in book.accounts
-                   if x.fullname == self._base_account][0]
+            return [child for child in base.children if child.name == name][0]
         except IndexError:
-            return None
+            pass
 
-        # Base account found
+        # Create and return child account
+        EUR = book.commodities.get(mnemonic="EUR")
+        acc = piecash.Account(parent=base, commodity=EUR, **params)
         return acc

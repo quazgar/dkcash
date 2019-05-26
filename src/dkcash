@@ -9,8 +9,12 @@ def _parse_arguments():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-f', '--file', type=str, default="dkcash.gnucash",
                         help="The GnuCash database file")
-    parser.add_argument('-b', '--base', type=str, default=None,
-                        help="The base account where everything else lives.")
+    parser.add_argument('-b', '--base_dk', type=str, default=None,
+                        help="The base account for `Direktkredite`.")
+    parser.add_argument('-a', '--base_ausgleich', type=str, default=None,
+                        help="The base account for the balancing account.")
+    parser.add_argument('-z', '--base_zinsen', type=str, default=None,
+                        help="The base account for the interest account.")
 
     return parser.parse_args()
 
