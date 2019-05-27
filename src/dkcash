@@ -23,7 +23,10 @@ def main():
     args = _parse_arguments()
     # print("args:")
     # print(args)
-    data = dkdata.DKData(gnucash_file=args.file, base_account=args.base)
+    data = dkdata.DKData(gnucash_file=args.file,
+                         base_dk=args.base_dk,
+                         base_ausgleich=args.base_ausgleich,
+                         base_zinsen=args.base_zinsen)
 
 if __name__ == "__main__":
     main()

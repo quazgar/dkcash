@@ -56,18 +56,19 @@ def _book_open(func):
 
 class DKData:
 
-    account_params = {"dk": {"name": "Direktkredite",
-                             "type": "LIABILITY",
-                             "placeholder": 1},
-                      "ausgleich": {"name": "DK-Ausgleich",
-                                    "type": "ASSET",
-                                    "description":
-                                    "Ausgleichskonto für die Direktkredite"},
-                      "zinsen": {"name": "Direktkreditzinsen",
-                                 "type": "EXPENSE",
-                                 "placeholder": 1},
+    account_params = {
+        "dk": {"name": "Direktkredite",
+               "type": "LIABILITY",
+               "placeholder": 1},
+        "ausgleich": {"name": "DK-Ausgleich",
+                      "type": "ASSET",
+                      "description":
+                      "Ausgleichskonto für die Direktkredite"},
+        "zinsen": {"name": "Direktkreditzinsen",
+                   "type": "EXPENSE",
+                   "placeholder": 1},
     }
-    
+
     def __init__(self, gnucash_file="dkcash_data.sql",
                  base_dk=None, base_ausgleich=None, base_zinsen=None):
         """Represents the DKCash data.
@@ -121,19 +122,55 @@ The GnuCash file must not exist yet."""
         print(self._gnucash_file)
         engine = book.session.connection().engine
         Base = automap_base()
-
         Base.prepare(engine, reflect=True)
+
+        # Creditors table #####################################################
+        if not "creditors" in Base.classes.__dir__():
+            class Creditor(Base):
+                __tablename__ = "creditors"
+                id = sqlalchemy.Column(sqlalchemy.String, primary_key=True,
+                                       nullable=False)
+                name = sqlalchemy.Column(sqlalchemy.String, nullable=False)
+                address1 = sqlalchemy.Column(sqlalchemy.String, nullable=False)
+                address2 = sqlalchemy.Column(sqlalchemy.String)
+                address3 = sqlalchemy.Column(sqlalchemy.String)
+                address4 = sqlalchemy.Column(sqlalchemy.String)
+                phone = sqlalchemy.Column(sqlalchemy.String)
+                email = sqlalchemy.Column(sqlalchemy.String)
+                newsletter = sqlalchemy.Column(sqlalchemy.Boolean,
+                                               nullable=False)
+
+            Creditor.metadata.create_all(bind=engine)
+            Base = automap_base()
+            Base.prepare(engine, reflect=True)
+
+        import IPython; IPython.embed()
+
+        # Contracts table #####################################################
         if not "contracts" in Base.classes.__dir__():
             class Contract(Base):
                 __tablename__ = "contracts"
-                id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
-                lender = sqlalchemy.Column(sqlalchemy.String)
+                id = sqlalchemy.Column(sqlalchemy.String, primary_key=True,
+                                       nullable=False)
+                creditor = sqlalchemy.Column(sqlalchemy.String,
+                                             nullable=False)
+                account = sqlalchemy.Column(sqlalchemy.String,
+                                            nullable=False)
+                address2 = sqlalchemy.Column(sqlalchemy.String)
+                address3 = sqlalchemy.Column(sqlalchemy.String)
+                address4 = sqlalchemy.Column(sqlalchemy.String)
+                phone = sqlalchemy.Column(sqlalchemy.String)
+                email = sqlalchemy.Column(sqlalchemy.String)
+                newsletter = sqlalchemy.Column(sqlalchemy.Boolean,
+                                               nullable=False)
+
             Contract.metadata.create_all(bind=engine)
+            Base = automap_base()
+            Base.prepare(engine, reflect=True)
 
         # acc1 = Base.classes.accounts(name="Hello")
         # print(acc1.name)
 
-            
         import IPython; IPython.embed()
 
 
