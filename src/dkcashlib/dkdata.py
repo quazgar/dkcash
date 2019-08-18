@@ -14,9 +14,22 @@ import os
 import sys
 from warnings import warn
 
-import piecash
 import sqlalchemy
+from sqlalchemy import event, Column, ForeignKey
+from sqlalchemy.engine import Engine
 from sqlalchemy.ext.automap import automap_base
+
+# foreign_keys setting must be at the very beginning of each connection
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    pragma = "PRAGMA foreign_keys=ON"
+    cursor.execute(pragma)
+    cursor.close()
+
+import piecash
+
+import logging; logging.getLogger('sqlalchemy.engine').setLevel('INFO')
 
 _open_books = dict()
 
@@ -54,19 +67,27 @@ def _book_open(func):
 
     return wrap
 
+def _get_table(base, tablename):
+    Table = base.classes[tablename]
+    Table.object_to_validate = lambda *x: []
+    return Table
+
 class DKData:
 
     account_params = {
         "dk": {"name": "Direktkredite",
                "type": "LIABILITY",
-               "placeholder": 1},
+               "placeholder": 1,
+               "code": 1000},
         "ausgleich": {"name": "DK-Ausgleich",
                       "type": "ASSET",
                       "description":
-                      "Ausgleichskonto für die Direktkredite"},
+                      "Ausgleichskonto für die Direktkredite",
+                      "code": 2000},
         "zinsen": {"name": "Direktkreditzinsen",
                    "type": "EXPENSE",
-                   "placeholder": 1},
+                   "placeholder": 1,
+                   "code": 3000},
     }
 
     def __init__(self, gnucash_file="dkcash_data.sql",
@@ -126,10 +147,11 @@ The GnuCash file must not exist yet."""
 
         # Creditors table #####################################################
         if not "creditors" in Base.classes.__dir__():
+            print("Creating creditor")
             class Creditor(Base):
                 __tablename__ = "creditors"
-                id = sqlalchemy.Column(sqlalchemy.String, primary_key=True,
-                                       nullable=False)
+                __table_args__ = {'sqlite_autoincrement': True}
+                id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
                 name = sqlalchemy.Column(sqlalchemy.String, nullable=False)
                 address1 = sqlalchemy.Column(sqlalchemy.String, nullable=False)
                 address2 = sqlalchemy.Column(sqlalchemy.String)
@@ -144,25 +166,29 @@ The GnuCash file must not exist yet."""
             Base = automap_base()
             Base.prepare(engine, reflect=True)
 
-        import IPython; IPython.embed()
+        print("Table `creditors` should exist now.")
+        # import IPython; IPython.embed()
 
         # Contracts table #####################################################
         if not "contracts" in Base.classes.__dir__():
             class Contract(Base):
                 __tablename__ = "contracts"
-                id = sqlalchemy.Column(sqlalchemy.String, primary_key=True,
-                                       nullable=False)
-                creditor = sqlalchemy.Column(sqlalchemy.String,
-                                             nullable=False)
-                account = sqlalchemy.Column(sqlalchemy.String,
-                                            nullable=False)
-                address2 = sqlalchemy.Column(sqlalchemy.String)
-                address3 = sqlalchemy.Column(sqlalchemy.String)
-                address4 = sqlalchemy.Column(sqlalchemy.String)
-                phone = sqlalchemy.Column(sqlalchemy.String)
-                email = sqlalchemy.Column(sqlalchemy.String)
-                newsletter = sqlalchemy.Column(sqlalchemy.Boolean,
-                                               nullable=False)
+                id = Column(sqlalchemy.String, primary_key=True)
+                creditor = Column(sqlalchemy.Integer,
+                                  ForeignKey('creditors.id'),
+                                  nullable=False)
+                account = Column(sqlalchemy.String, ForeignKey('accounts.guid'),
+                                 nullable=False)
+                date = Column(sqlalchemy.String, nullable=False)
+                amount = Column(sqlalchemy.Float, nullable=False)
+                interest = Column(sqlalchemy.Float, nullable=False)
+                interest_payment = Column(sqlalchemy.String, nullable=False)
+                version = Column(sqlalchemy.String, nullable=True)
+                period_type = Column(sqlalchemy.String, nullable=False)
+                period_notice = Column(sqlalchemy.String, nullable=True)
+                period_end = Column(sqlalchemy.String, nullable=True)
+                cancellation_date = Column(sqlalchemy.String, nullable=True)
+                active = Column(sqlalchemy.Boolean, nullable=False)
 
             Contract.metadata.create_all(bind=engine)
             Base = automap_base()
@@ -171,17 +197,20 @@ The GnuCash file must not exist yet."""
         # acc1 = Base.classes.accounts(name="Hello")
         # print(acc1.name)
 
-        import IPython; IPython.embed()
+        print("Table `contracts` should exist now.")
+        # import IPython; IPython.embed()
 
 
     @_book_open
     def _init_account(self, parent, params, book=None):
         """Initializes the account given by `params`, if it does not exist yet.
 
+If it exists already, do nothing and just return the account.
+
 Parameters
 ----------
 parent : String
-    The parent account.
+    The parent account (fullname).
 
 params : dict
     Parameters defining the account that will be initialized (if it does not
@@ -212,3 +241,134 @@ out : The account specified by `params`
         EUR = book.commodities.get(mnemonic="EUR")
         acc = piecash.Account(parent=base, commodity=EUR, **params)
         return acc
+
+    @_book_open
+    def add_creditor(self, name, address, phone=None, email=None,
+                     newsletter=False, book=None):
+        """Adds a creditor (person lending money) to the system.
+
+Parameters
+----------
+name : str
+
+address : iterable
+The address consists of an iterable with up to 4 strings, the first one must not
+be empty.
+
+phone : str, optional
+
+email : str, optional
+
+newsletter : bool, optional
+Whether newsletters shall be sent.  Default is False.
+
+Returns
+-------
+out : str
+The ID of the new creditor.
+        """
+        engine = book.session.connection().engine
+        Base = automap_base()
+        Base.prepare(engine, reflect=True)
+        Creditor = _get_table(Base, "creditors")
+        addr = [""] * 4
+        if type(address) == str:
+            addr[0] = address
+        else:
+            addr = [(address[i] if i < len(address) else "")
+                    for i in range(len(addr))]
+        print(addr)
+        if len(addr[0]) == 0:
+            raise ValueError("Address field must not be empty.")
+        creditor = Creditor(name=name, address1=addr[0], address2=addr[1],
+                            address3=addr[2], address4=addr[3], phone=phone,
+                            email=email, newsletter=newsletter)
+        print("Add creditor")
+        book.session.add(creditor)
+        # import IPython; IPython.embed()
+        book.session.flush()
+        return creditor.id
+
+    @_book_open
+    def add_contract(self, contract_id, creditor, date, amount, interest,
+                     interest_payment="payout", period_type="fixed_duration",
+                     period_notice=None, period_end=None, version=None,
+                     book=None):
+        """Add a contract to the database.
+
+This also adds the correct account, if it does not exist yet.
+
+
+Parameters
+----------
+contract_id : int, str
+Contract ID, the same as on the written contract.  Must be an integer or string
+that can be converted to an integer.
+
+creditor : int
+The creditor (id) of this contract.  Must exist.
+
+date : date
+Signing date of this contract.
+
+amount : float
+Amount (in EUR) of this contract
+
+interest : float
+Interest rate for this contract, in percent/year.
+
+interest_payment : str, optional
+What shall happen each year with the interest, one of "payout", "cumulative",
+"reinvest".  The default is "payout".
+
+period_type : str, optional
+The duration type, one of "fixed_duration", "fixed_period_notice",
+"initial_plus_n".  Default is "fixed_duration".
+
+period_notice : str, optional
+How much in advance the contract needs to be canceled.  The methods requests an
+ISO compliant `YYYY-MM-DD` string here, where the less significant parts may be
+missing.
+
+period_end : datetime.date, optional
+
+The date at which the contract ends.  The exact meaning depends on the
+`period_type` argument.
+
+version : str, optional
+Version of the contract form.
+
+Returns
+-------
+out : None
+
+        """
+        engine = book.session.connection().engine
+        Base = automap_base()
+        Base.prepare(engine, reflect=True)
+        Contract = _get_table(Base, "contracts")
+        print("Add contract")
+
+        contract_id = int(contract_id)
+        dk_parent_account = book.accounts.get(name="Direktkredite")
+        dk_account_name = "DK {:03d}".format(contract_id)
+        dk_account_code = "{parent_code}{contract_id:03d}".format(
+            parent_code=dk_parent_account.code,
+            contract_id=contract_id)
+        dk_account = self._init_account(
+            parent=dk_parent_account.fullname,
+            params={"name": dk_account_name,
+                    "code": dk_account_code,
+                    "type": "LIABILITY"})
+        # Need to flush to get a guid for the account.
+        book.flush()
+
+        # import IPython; IPython.embed()
+        contract = Contract(
+            id=contract_id, creditor=creditor, account=dk_account.guid,
+            date=date, amount=amount, interest=interest,
+            interest_payment=interest_payment, period_type=period_type,
+            period_notice=period_notice, period_end=period_end,
+            version=version, cancellation_date=None, active=True)
+        book.session.add(contract)
+        book.session.flush()

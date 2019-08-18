@@ -3,11 +3,12 @@
 """
 
 import argparse
+from datetime import date
 from dkcashlib import dkdata
 
 def _parse_arguments():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('-f', '--file', type=str, default="dkcash.gnucash",
+    parser.add_argument('-f', '--file', type=str, default="dkcash.sqlite",
                         help="The GnuCash database file")
     parser.add_argument('-b', '--base_dk', type=str, default=None,
                         help="The base account for `Direktkredite`.")
@@ -27,6 +28,12 @@ def main():
                          base_dk=args.base_dk,
                          base_ausgleich=args.base_ausgleich,
                          base_zinsen=args.base_zinsen)
+    creditor_id = data.add_creditor(
+        "Someone", ["address line 1", "address line 2"],
+        phone="+491234567890", email="hallo@example.com")
+    data.add_contract("2038", creditor_id, date="2001-01-01", amount=1234.56,
+                      interest=0.1, period_end=date(2000, 1, 1))
+
 
 if __name__ == "__main__":
     main()

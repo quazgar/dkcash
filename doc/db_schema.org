@@ -13,14 +13,25 @@ If these accounts do not exist yet, they will be created below the specified
 accounts.
 
 ** Contract accounts
-There will be exactly one asset account for each contract, where all the
+There will be exactly one liability account for each contract, where all the
 transaction go to or come from.  This account will be a child to the
-=Direktkredite= account, its account code will the concatenation of the parent
-account code and the contract ID.
+=Direktkredite= account, its account code will be the concatenation of the
+parent account code and the contract ID.
 
 If the creditor chose to collect the interests with neither immediate pay-out
-nor re-investment, the contract account has another sub-account for those
+nor re-investment, the contract account has another sub-account (code: "1" appended) for those
 collected interests.
+
+An example:
+
+| Account name  | Account code |  Parent |
+|---------------+--------------+---------|
+| Direktkredite |         1234 |         |
+| DK 01         |      1234001 |    1234 |
+| ...           |              |         |
+| DK 06         |      1234006 |    1234 |
+| DK 06 Zinsen  |     12340061 | 1234006 |
+
 
 ** Booking
 
@@ -37,7 +48,7 @@ created if they do not exist yet.  These additional tables are:
 ** creditors
 | name       | type     | required | default | comment                 |
 |------------+----------+----------+---------+-------------------------|
-| id         | str(36)  | True     |         | auto-generated          |
+| id         | integer  | True     |         | auto-generated          |
 |------------+----------+----------+---------+-------------------------|
 | name       | str(100) | True     |         |                         |
 | address1   | str(100) | True     |         |                         |
