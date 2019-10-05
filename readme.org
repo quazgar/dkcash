@@ -28,3 +28,13 @@ Qt als GUI-Toolkit über PyQt, wird auf allen üblichen Systemen unterstützt.
   - Kreditgeber*innen: Name, Kontaktdaten, Einverständnis für Newsletter
   - Kreditverträge: Vertragsnummer, Datum, Laufzeitinformationen
   Details zum Datenbankschema sind in =db_schema.org= aufgeführt.
+
+* Roadmap
+Ideen, was als nächstes getan werden könnte:
+- Tests schreiben für Methoden in =dkdata.py= und =common.py= (auch noch nicht
+  implementierte).
+- Implementation der High-Level-Klassen und (einiger) Methoden in =common.py=.
+- Implementation einer GUI, die die Klassen aus =common.py= verwendet.
+  - Die von GUI benötigten Methoden in =common.py= implementieren, bei Bedarf
+    auch neu- oder umdefinieren.
+
