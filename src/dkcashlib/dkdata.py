@@ -19,6 +19,8 @@ from sqlalchemy import event, Column, ForeignKey
 from sqlalchemy.engine import Engine
 from sqlalchemy.ext.automap import automap_base
 
+from . import errors
+
 # foreign_keys setting must be at the very beginning of each connection
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_connection, connection_record):
@@ -127,6 +129,7 @@ The GnuCash file must not exist yet."""
     def _init_gnucash(self, book=None):
         """Initialize the GnuCash database with the necessary accounts."""
         EUR = book.commodities.get(mnemonic="EUR")
+        # print(self._base_dk)
         parent_dk = self._init_account(parent=self._base_dk,
                                        params=DKData.account_params["dk"])
         parent_ausgleich = self._init_account(
@@ -139,15 +142,15 @@ The GnuCash file must not exist yet."""
     @_book_open
     def _init_tables(self, book=None):
         """Initialize the GnuCash database with extra tables."""
-        print("_init_tables")
-        print(self._gnucash_file)
+        # print("_init_tables")
+        # print(self._gnucash_file)
         engine = book.session.connection().engine
         Base = automap_base()
         Base.prepare(engine, reflect=True)
 
         # Creditors table #####################################################
         if not "creditors" in Base.classes.__dir__():
-            print("Creating creditor")
+            # print("Creating creditor")
             class Creditor(Base):
                 __tablename__ = "creditors"
                 __table_args__ = {'sqlite_autoincrement': True}
@@ -166,7 +169,7 @@ The GnuCash file must not exist yet."""
             Base = automap_base()
             Base.prepare(engine, reflect=True)
 
-        print("Table `creditors` should exist now.")
+        # print("Table `creditors` should exist now.")
         # import IPython; IPython.embed()
 
         # Contracts table #####################################################
@@ -197,7 +200,7 @@ The GnuCash file must not exist yet."""
         # acc1 = Base.classes.accounts(name="Hello")
         # print(acc1.name)
 
-        print("Table `contracts` should exist now.")
+        # print("Table `contracts` should exist now.")
         # import IPython; IPython.embed()
 
 
@@ -220,6 +223,7 @@ Returns
 -------
 out : The account specified by `params`
         """
+        # print(parent)
         if parent is None or len(parent) == 0:
             base = book.root_account
         else:
@@ -227,7 +231,8 @@ out : The account specified by `params`
                 base = [x for x in book.accounts
                        if x.fullname == parent][0]
             except IndexError:
-                print("Cannot find base account {}.".format(parent))
+                print("Cannot find base account {}.\nAccounts:".format(parent))
+                print(list(book.accounts))
                 sys.exit(1)
 
         # Test if the target account exists already
@@ -277,13 +282,12 @@ The ID of the new creditor.
         else:
             addr = [(address[i] if i < len(address) else "")
                     for i in range(len(addr))]
-        print(addr)
         if len(addr[0]) == 0:
             raise ValueError("Address field must not be empty.")
         creditor = Creditor(name=name, address1=addr[0], address2=addr[1],
                             address3=addr[2], address4=addr[3], phone=phone,
                             email=email, newsletter=newsletter)
-        print("Add creditor")
+        # print("Add creditor")
         book.session.add(creditor)
         # import IPython; IPython.embed()
         book.session.flush()
@@ -347,9 +351,9 @@ out : None
         Base = automap_base()
         Base.prepare(engine, reflect=True)
         Contract = _get_table(Base, "contracts")
-        print("Add contract")
 
         contract_id = int(contract_id)
+        # print("Add contract {}".format(contract_id))
         dk_parent_account = book.accounts.get(name="Direktkredite")
         dk_account_name = "DK {:03d}".format(contract_id)
         dk_account_code = "{parent_code}{contract_id:03d}".format(
@@ -370,5 +374,20 @@ out : None
             interest_payment=interest_payment, period_type=period_type,
             period_notice=period_notice, period_end=period_end,
             version=version, cancellation_date=None, active=True)
+        # import IPython; IPython.embed()
         book.session.add(contract)
-        book.session.flush()
+
+        try:
+            book.session.flush()
+        except sqlalchemy.exc.IntegrityError as int_err:
+            unique_expr = "UNIQUE constraint failed: "
+            if unique_expr in int_err.args[0]:
+                table_col = int_err.args[0].split(unique_expr)
+                table_name, col_name = table_col[-1].split(".")
+                exc = errors.DatabaseError(
+                    table_name, col_name,
+                    "`{}` of `{}` was not unique.".format(
+                        col_name, table_name))
+                raise exc from int_err
+            # Unhandled exception
+            raise int_err
