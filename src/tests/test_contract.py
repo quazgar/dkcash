@@ -13,6 +13,7 @@ import unittest
 
 from datetime import date
 from dkcashlib import dkdata, errors
+import common
 
 
 @pytest.fixture
@@ -22,7 +23,7 @@ def data(tmp_path):
     data = dkdata.DKData(gnucash_file=str(filename))
     return data
 
-def test_dkata_add_creditor(data):
+def test_dkdata_add_creditor(data):
     print(data)
     creditor_id = data.add_creditor(
         "Someone", ["address line 1", "address line 2"],
@@ -40,3 +41,5 @@ def test_dkdata_add_contract(data):
                           interest=0.0, period_end=date(2003, 3, 3))
 
 
+def test_dkdata_create_file(data):
+    data = common.Data(gnucash_file=str(filename))
