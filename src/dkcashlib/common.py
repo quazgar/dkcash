@@ -1,7 +1,7 @@
 """Common classes for DKCash.
 """
 
-import dkdata
+from . import dkdata
 
 class Connection:
     """Connection to the database/GnuCash file.
@@ -41,29 +41,29 @@ base_account : String, optional
     ###########################################################################
 
     def find_creditors(self, **kwargs):
-        raise NotImplemented("API and behaviour not defined yet")
+        raise NotImplementedError("API and behaviour not defined yet")
 
     def find_contracts(self, **kwargs):
-        raise NotImplemented("API and behaviour not defined yet")
+        raise NotImplementedError("API and behaviour not defined yet")
 
     def calculate_interests(self, **kwargs):
-        raise NotImplemented("API and behaviour not defined yet")
+        raise NotImplementedError("API and behaviour not defined yet")
 
     def generate_report(self, **kwargs):
-        raise NotImplemented("API and behaviour not defined yet")
+        raise NotImplementedError("API and behaviour not defined yet")
 
     def generate_spreadsheet(self, **kwargs):
-        raise NotImplemented("API and behaviour not defined yet")
+        raise NotImplementedError("API and behaviour not defined yet")
 
     def next_due_dates(self, **kwargs):
         """The dates when the next accounts are due."""
-        raise NotImplemented("API and behaviour not defined yet")
+        raise NotImplementedError("API and behaviour not defined yet")
 
     def generate_account_statements(self, **kwargs):
-        raise NotImplemented("API and behaviour not defined yet")
+        raise NotImplementedError("API and behaviour not defined yet")
 
     def average_interest(self, **kwargs):
-        raise NotImplemented("API and behaviour not defined yet")
+        raise NotImplementedError("API and behaviour not defined yet")
 
 
 class Creditor:
@@ -78,7 +78,7 @@ class Creditor:
         """Create a creditor, and may also immediately add it.
 
         If no ID is given, it will be assigned upon insertion into the database.
-        If the ID is not None, it
+        If the ID is not None, it will be saved in this class's object.
 
 Parameters
 ----------
@@ -96,16 +96,44 @@ newsletter : bool, optional
 Whether newsletters shall be sent.  Default is False.
 
         """
-        raise NotImplemented()
+        self.name = name
+        if type(address) == str:
+            address = [address]
+        if len(address) == 0:
+            raise ValueError("Adress must not be empty.")
+        if len(address) > 4:
+            raise ValueError("Adress must consist of at most 4 entries.")
+        if address[0] == None or len(address[0]) == 0:
+            raise ValueError("First line of address must not be empty.")
+        self.address = address
+        self.phone = phone
+        if newsletter and not email:
+            raise ValueError("Newsletter is True, but no email is set.")
+        self.email = email
+        self.newsletter = bool(newsletter)
+        self.connection = connection
 
-    def save(self, connection=None):
+        self.creditor_id = None
+        if insert:
+            self.insert()
+
+
+    def insert(self, connection=None):
         """Inserts the creditor into the database.
 
-        Upon success, this also assigns the ID.
+        Upon successful insertion, this also assigns the ID.
 
         """
-        raise NotImplemented()
-        
+        if connection is not None:
+            self.connection = connection
+        if self.connection is None:
+            raise RuntimeError(
+                "Connection is None although is needs to be defined for "
+                "inserting this object into the database.")
+        creditor_id = self.connection._data.add_creditor(
+            self.name, self.address, self.phone, self.email, self.newsletter)
+        self.creditor_id = creditor_id
+
     def update(self, name=None, address=None, phone=None, email=None,
                newsletter=False):
         """Updates the Creditor's properties (those which are not None).
@@ -113,8 +141,27 @@ Whether newsletters shall be sent.  Default is False.
         The Creditor must be inserted already in the database, i.e. its ID must
         not be None.
 
+        Note that address should be a 4 element list.
         """
-        raise NotImplemented()
+        address1, address2, address3, address4 = [None] * 4
+        if address is not None:
+            address1, address2, address3, address4 = address
+        self.connection._data.update_creditor(
+            self.creditor_id, name=name, phone=phone, email=email,
+            newsletter=newsletter,
+            address1=address1, address2=address2, address3=address3,
+            address4=address4)
+        reloaded = self.connection._data.find_creditors(id=self.creditor_id)[0]
+        self.name = reloaded.name
+        self.address = [reloaded.address1,
+                        reloaded.address2,
+                        reloaded.address3,
+                        reloaded.address4]
+        self.phone = reloaded.phone
+        self.email = reloaded.email
+        self.newsletter = reloaded.newsletter
+
+
 
 class Contract:
     """A contract is connected to a creditor.
@@ -171,4 +218,4 @@ The date at which the contract ends.  The exact meaning depends on the
 version : str, optional
 Version of the contract form.
         """
-        raise NotImplemented()
+        raise NotImplementedError()

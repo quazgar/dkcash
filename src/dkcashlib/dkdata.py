@@ -391,3 +391,51 @@ out : None
                 raise exc from int_err
             # Unhandled exception
             raise int_err
+
+
+    @_book_open
+    def update_creditor(self, creditor_id,
+                        name=None, phone=None, email=None,
+                        newsletter=None, address1=None, address2=None,
+                        address3=None, address4=None, book=None):
+        """Updates the creditor's entry in the database."""
+        creditor = self.find_creditors(id=creditor_id)[0]
+        update = False
+        if name is not None:
+            creditor.name = name
+            update = True
+        if address1 is not None:
+            creditor.address1 = address1
+            update = True
+        if address2 is not None:
+            creditor.address2 = address2
+            update = True
+        if address3 is not None:
+            creditor.address3 = address3
+            update = True
+        if address4 is not None:
+            creditor.address4 = address4
+            update = True
+        if phone is not None:
+            creditor.phone = phone
+            print(creditor.phone)
+            update = True
+        if email is not None:
+            creditor.email = email
+            update = True
+        if newsletter is not None:
+            creditor.newsletter = newsletter
+            update = True
+        if update:
+            book.session.commit()
+            book.session.flush()
+            print(creditor)
+
+
+    @_book_open
+    def find_creditors(self, book=None, **kwargs):
+        engine = book.session.connection().engine
+        Base = automap_base()
+        Base.prepare(engine, reflect=True)
+        Creditor = _get_table(Base, "creditors")
+        return book.session.query(Creditor).filter_by(**kwargs)
