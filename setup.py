@@ -24,7 +24,7 @@ setup(
             'dkcash = dkcash.command_line:main',
         ],
     },
-    long_description=read('readme.org'),
+    long_description=read('readme.md'),
     classifiers=[
         "Development Status :: 1 - Planning",
         "Topic :: Office/Business :: Financial :: Accounting",

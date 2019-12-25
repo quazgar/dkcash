@@ -1,7 +1,7 @@
-* GnuCash accounts
+# GnuCash accounts
 Requirements for the GnuCash account structure are specified here.
 
-** Base accounts
+## Base accounts
 The GnuCash account structure must contain at least the following:
 | name               | type      | description                     |
 |--------------------+-----------+---------------------------------|
@@ -12,15 +12,15 @@ The GnuCash account structure must contain at least the following:
 If these accounts do not exist yet, they will be created below the specified
 accounts.
 
-** Contract accounts
+## Contract accounts
 There will be exactly one liability account for each contract, where all the
 transaction go to or come from.  This account will be a child to the
-=Direktkredite= account, its account code will be the concatenation of the
+`Direktkredite` account, its account code will be the concatenation of the
 parent account code and the contract ID.
 
 If the creditor chose to collect the interests with neither immediate pay-out
-nor re-investment, the contract account has another sub-account (code: "1" appended) for those
-collected interests.
+nor re-investment, the contract account has another sub-account (code: "1"
+appended) for those collected interests.
 
 An example:
 
@@ -33,7 +33,7 @@ An example:
 | DK 06 Zinsen  |     12340061 | 1234006 |
 
 
-** Booking
+## Booking
 
 | Action              | To            | From               |
 |---------------------+---------------+--------------------|
@@ -42,10 +42,12 @@ An example:
 | Paying out interest | DK-Ausgleich  | Direktkredite      |
 | Paying back a loan  | DK-Ausgleich  | Direktkredite      |
 
-* The database tables
+# The database tables
 For storing loan specific information, a few new tables are necessary, and
 created if they do not exist yet.  These additional tables are:
-** creditors
+
+## creditors
+
 | name       | type     | required | default | comment                 |
 |------------+----------+----------+---------+-------------------------|
 | id         | integer  | True     |         | auto-generated          |
@@ -59,7 +61,7 @@ created if they do not exist yet.  These additional tables are:
 | email      | str(100) | False    |         | must be a valid email   |
 | newsletter | bool     | True     | False   | may newsletter be sent? |
 
-** contracts
+## contracts
 | name              | type            | required | default | comment           |
 |-------------------+-----------------+----------+---------+-------------------|
 | id                | str(10)         | True     |         | same as on paper  |
@@ -84,14 +86,13 @@ created if they do not exist yet.  These additional tables are:
 3. The required columns in this section depend on the period type, the period
    type also defines the meaning of these columns.
 
-*** Period type of contracts
-- fixed_duration :: There is a fixed duration of the contract. =period_notice=
-                    is =null= in this case.  =period_end= is the date when the
-                    contract will end.
-- fixed_period_notice :: The contract runs forever, but can be canceled with
-     notice as given in the =period_notice= field.  =period_end= is =null= in
-     this case.
-- initial_plus_n :: The contract first runs without possibility to cancel until
-                    the date given in =period_end=, then it cn be canceled with
-                    =period_notice=, just as for *fixed_period_notice*.
+### Period type of contracts
+- `fixed_duration` :: There is a fixed duration of the contract. `period_notice`
+  is `null` in this case.  `period_end` is the date when the contract will end.
+- `fixed_period_notice` :: The contract runs forever, but can be canceled with
+  notice as given in the `period_notice` field.  `period_end` is `null` in this
+  case.
+- `initial_plus_n` :: The contract first runs without possibility to cancel
+  until the date given in `period_end`, then it cn be canceled with
+  `period_notice`, just as for *fixed_period_notice*.
 

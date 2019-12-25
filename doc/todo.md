@@ -1,0 +1,27 @@
+# Next TODOs #
+
+- [-] Implement Creditor
+  - [X] Constructor
+  - [X] Insertion into database
+  - [X] Update
+  - [ ] Retrieve from database
+  - [ ] Delete?
+- [ ] Implement Contract class
+  - [ ] Constructor
+  - [ ] Insertion into database
+  - [ ] Update
+  - [ ] Retrieve
+  - [ ] Delete?
+- [ ] Specify dkhandle
+  - [ ] Define user stories to be covered
+  - [ ] Define classes, methods to cover the user stories
+- [ ] Implement dkhandle
+  - [ ] Write class skeletons
+  - [ ] Write (failing) tests
+  - [ ] Implement classes, methods
+- [ ] Specify GUI
+  - [ ] Define user stories
+  - [ ] Define GUI layout (windows, content, behaviour)
+- [ ] Implement GUI
+  - [ ] QT classes
+  - [ ] Behaviour
