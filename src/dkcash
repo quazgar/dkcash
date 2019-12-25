@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """DKCash, the loan management program using a GnuCash database.
+
+Once the program is finished, this should start a GUI as well.
 """
 
 import argparse
 from datetime import date
 from dkcashlib import dkdata
+
 
 def _parse_arguments():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -18,6 +21,7 @@ def _parse_arguments():
                         help="The base account for the interest account.")
 
     return parser.parse_args()
+
 
 def main():
     """The main function of this script."""

@@ -2,68 +2,7 @@
 """
 
 from . import dkdata
-
-class Connection:
-    """Connection to the database/GnuCash file.
-
-    This class can be used to conveniently add or modify data, search for
-    records, generate reports.
-
-    Implementation notice: This class internally connects to dkdata.DKData.
-
-    """
-
-    def __init__(self, gnucash_file="dkcash_data.sql",
-                 base_dk=None, base_ausgleich=None, base_zinsen=None):
-        """Create a DKCash connection.
-
-The constructor needs information about where to store data, and how to interact
-with existing account structures.
-
-Parameters
-----------
-gnucash_file : String, optional
-    File name of the GnuCash file, default value is "dkcash_data".  If the file
-    does not exist yet, it is created.
-
-base_account : String, optional
-    The base account where the "special" accounts should be created if they do
-    not yet exist.  This is a colon-separated string, for example
-    `Aktiva:DKVerwaltung`.
-
-        """
-        self._data = dkdata.DKData( gnucash_file=gnucash_file, base_dk=base_dk,
-                                    base_ausgleich=base_ausgleich,
-                                    base_zinsen=base_zinsen)
-
-    ###########################################################################
-    # The following methods are just some ideas what should be(come) possible #
-    ###########################################################################
-
-    def find_creditors(self, **kwargs):
-        raise NotImplementedError("API and behaviour not defined yet")
-
-    def find_contracts(self, **kwargs):
-        raise NotImplementedError("API and behaviour not defined yet")
-
-    def calculate_interests(self, **kwargs):
-        raise NotImplementedError("API and behaviour not defined yet")
-
-    def generate_report(self, **kwargs):
-        raise NotImplementedError("API and behaviour not defined yet")
-
-    def generate_spreadsheet(self, **kwargs):
-        raise NotImplementedError("API and behaviour not defined yet")
-
-    def next_due_dates(self, **kwargs):
-        """The dates when the next accounts are due."""
-        raise NotImplementedError("API and behaviour not defined yet")
-
-    def generate_account_statements(self, **kwargs):
-        raise NotImplementedError("API and behaviour not defined yet")
-
-    def average_interest(self, **kwargs):
-        raise NotImplementedError("API and behaviour not defined yet")
+from .dkhandle import Connection
 
 
 class Creditor:
@@ -121,7 +60,7 @@ Whether newsletters shall be sent.  Default is False.
     def insert(self, connection=None):
         """Inserts the creditor into the database.
 
-        Upon successful insertion, this also assigns the ID.
+Upon successful insertion, this also assigns the ID.
 
         """
         if connection is not None:
@@ -138,10 +77,11 @@ Whether newsletters shall be sent.  Default is False.
                newsletter=False):
         """Updates the Creditor's properties (those which are not None).
 
-        The Creditor must be inserted already in the database, i.e. its ID must
-        not be None.
+The Creditor must be inserted already in the database, i.e. its ID must not be
+None.
 
-        Note that address should be a 4 element list.
+Note that address should be a 4 element list.
+
         """
         address1, address2, address3, address4 = [None] * 4
         if address is not None:
@@ -162,12 +102,11 @@ Whether newsletters shall be sent.  Default is False.
         self.newsletter = reloaded.newsletter
 
 
-
 class Contract:
     """A contract is connected to a creditor.
 
-    The Contract ID is the same as on the written contract, it must be a unique
-    integer (or can be converted to an integer).
+The Contract ID is the same as on the written contract, it must be a unique
+integer (or can be converted to an integer).
 
     """
     def __init__(self, contract_id, creditor, date, amount, interest,
@@ -176,7 +115,7 @@ class Contract:
                  connection=None, insert=True):
         """Create a contract, and may also immediately add it.
 
-        If no ID is given, it will be assigned upon insertion into the database.
+If no ID is given, it will be assigned upon insertion into the database.
 
 Parameters
 ----------

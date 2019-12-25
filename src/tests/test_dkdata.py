@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env pytest
 """Test contract insertion.
 
 Call e.g. with `pytest` (for Python3).
