@@ -56,13 +56,31 @@ Whether newsletters shall be sent.  Default is False.
         if insert:
             self.insert()
 
+    @staticmethod
+    def from_namespace(values, connection, insert=False):
+        """Create and return a Creditor from a namespace.
+
+By default, do not insert the Creditor because probably it exists already.
+"""
+        creditor = Creditor(name=values.name,
+                            address=(values.address1,
+                                     values.address2,
+                                     values.address3,
+                                     values.address4),
+                            phone=values.phone,
+                            email=values.email,
+                            newsletter=values.newsletter,
+                            connection=connection,
+                            insert=insert)
+        if not creditor.creditor_id:
+            creditor.creditor_id = values.id
+        return creditor
 
     def insert(self, connection=None):
         """Inserts the creditor into the database.
 
 Upon successful insertion, this also assigns the ID.
-
-        """
+"""
         if connection is not None:
             self.connection = connection
         if self.connection is None:
@@ -100,6 +118,35 @@ Note that address should be a 4 element list.
         self.phone = reloaded.phone
         self.email = reloaded.email
         self.newsletter = reloaded.newsletter
+
+    @staticmethod
+    def retrieve(connection, creditor_id=None, name=None):
+        """Retrieve a creditor from the database if a matching one can be found.
+
+At least one of creditor_id or name must be given.  Only exact matches are
+returned.
+
+If no match is found, None is returned.
+        """
+        if creditor_id is None and name is None:
+            raise ValueError("At least one of ID and name must be given!")
+        filters = {}
+        if creditor_id is not None:
+            filters["id"] = creditor_id
+        if name is not None:
+            filters["name"] = name
+        query_result = connection._data.find_creditors(**filters)
+        if query_result.count() == 0:
+            print("No results found.")
+            return None
+        if query_result.count() > 1:
+            print(
+"Warning: more than one match found for `{}`, returning only one.".format(
+    filters
+))
+        creditor = Creditor.from_namespace(query_result.first(),
+                                           connection=connection)
+        return creditor
 
 
 class Contract:

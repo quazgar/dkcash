@@ -431,9 +431,21 @@ out : None
             book.session.flush()
             print(creditor)
 
-
     @_book_open
     def find_creditors(self, book=None, **kwargs):
+        """Find creditors matching the given filters.
+
+Parameters
+----------
+
+**kwargs : SqlAlchemy filters
+  Filters which are passed on to SqlAlchemy's `filter_by` method:
+  https://docs.sqlalchemy.org/en/13/orm/query.html#sqlalchemy.orm.query.Query.filter_by
+
+Returns
+-------
+out : A tuple of creditors (automapped by SqlAlchemy).
+             """
         engine = book.session.connection().engine
         Base = automap_base()
         Base.prepare(engine, reflect=True)

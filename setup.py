@@ -18,7 +18,8 @@ setup(
     keywords = "Direktkreditverwaltung GnuCash MHS",
     # url = "http://packages.python.org/an_example_pypi_project",
     # packages=['dkcash'], #, 'tests'],
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages("src", exclude=("tests*", )),
+    package_dir = {"": "src"},
     entry_points = {
         'console_scripts': [
             'dkcash = dkcash.command_line:main',
