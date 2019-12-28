@@ -451,3 +451,13 @@ out : A tuple of creditors (automapped by SqlAlchemy).
         Base.prepare(engine, reflect=True)
         Creditor = _get_table(Base, "creditors")
         return book.session.query(Creditor).filter_by(**kwargs)
+
+    @_book_open
+    def delete_creditor(self, creditor_id, book=None):
+        """Remove this creditor from the database."""
+        deleted = self.find_creditors(id=creditor_id).delete()
+        if deleted >= 2:
+            raise RuntimeError("Deleted more than one creditor, but only one "
+                               "should have existed.")
+        if deleted == 0:
+            raise ValueError("Tried to delee non-existent creditor.")

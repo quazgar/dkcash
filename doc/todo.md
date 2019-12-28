@@ -4,8 +4,8 @@
   - [X] Constructor
   - [X] Insertion into database
   - [X] Update
-  - [ ] Retrieve from database
-  - [ ] Delete?
+  - [X] Retrieve from database
+  - [ ] Delete
 - [ ] Implement Contract class
   - [ ] Constructor
   - [ ] Insertion into database

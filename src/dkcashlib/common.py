@@ -32,8 +32,13 @@ phone : str, optional
 email : str, optional
 
 newsletter : bool, optional
-Whether newsletters shall be sent.  Default is False.
+    Whether newsletters shall be sent.  Default is False.
 
+connection : dkhandle.Connection, optional
+    If not given, the Creditor cannot be inserted.
+
+insert : bool, optional
+    If the Creditor shall be immediately inserted.  Default is True.
         """
         self.name = name
         if type(address) == str:
@@ -55,6 +60,35 @@ Whether newsletters shall be sent.  Default is False.
         self.creditor_id = None
         if insert:
             self.insert()
+
+    @staticmethod
+    def retrieve(connection, creditor_id=None, name=None):
+        """Retrieve a creditor from the database if a matching one can be found.
+
+At least one of creditor_id or name must be given.  Only exact matches are
+returned.
+
+If no match is found, None is returned.
+        """
+        if creditor_id is None and name is None:
+            raise ValueError("At least one of ID and name must be given!")
+        filters = {}
+        if creditor_id is not None:
+            filters["id"] = creditor_id
+        if name is not None:
+            filters["name"] = name
+        query_result = connection._data.find_creditors(**filters)
+        if query_result.count() == 0:
+            print("No results found.")
+            return None
+        if query_result.count() > 1:
+            print(
+"Warning: more than one match found for `{}`, returning only one.".format(
+    filters
+))
+        creditor = Creditor.from_namespace(query_result.first(),
+                                           connection=connection)
+        return creditor
 
     @staticmethod
     def from_namespace(values, connection, insert=False):
@@ -119,34 +153,20 @@ Note that address should be a 4 element list.
         self.email = reloaded.email
         self.newsletter = reloaded.newsletter
 
-    @staticmethod
-    def retrieve(connection, creditor_id=None, name=None):
-        """Retrieve a creditor from the database if a matching one can be found.
+    def delete(self, delete_contracts=False):
+        """Deletes this creditor from the database.
 
-At least one of creditor_id or name must be given.  Only exact matches are
-returned.
-
-If no match is found, None is returned.
-        """
-        if creditor_id is None and name is None:
-            raise ValueError("At least one of ID and name must be given!")
-        filters = {}
-        if creditor_id is not None:
-            filters["id"] = creditor_id
-        if name is not None:
-            filters["name"] = name
-        query_result = connection._data.find_creditors(**filters)
-        if query_result.count() == 0:
-            print("No results found.")
-            return None
-        if query_result.count() > 1:
-            print(
-"Warning: more than one match found for `{}`, returning only one.".format(
-    filters
-))
-        creditor = Creditor.from_namespace(query_result.first(),
-                                           connection=connection)
-        return creditor
+Parameters
+----------
+delete_contracts : bool, optional
+    If contracts by this Creditor shall also be deleted.  Default is False.
+"""
+        raise NotImplementedError("TODO: Need to check for contracts.")
+        if self.connection is None:
+            raise RuntimeError(
+                "Connection is None although is needs to be defined for "
+                "deleting this object from the database.")
+        self.connection._data.delete_creditor(creditor_id=self.creditor_id)
 
 
 class Contract:
