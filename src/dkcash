@@ -39,9 +39,14 @@ def main():
         "Someone", ["address line 1", "address line 2"],
         phone="+491234567890", email="hallo@example.com",
         connection=connection)
-    # data.add_contract("2038", creditor_id, date="2001-01-01", amount=1234.56,
-    #                   interest=0.1, period_end=date(2000, 1, 1))
-    creditor.delete()
+    contract = Contract(
+        "2038", creditor.creditor_id, date="2001-01-01", amount=1234.56,
+        interest=0.1, period_end=date(2000, 1, 1), connection=connection)
+    # creditor.delete()
+
+    retrieved = Contract.retrieve(connection=connection,
+                                  contract_id="2038")
+
     import IPython; IPython.embed()
 
 

@@ -36,9 +36,9 @@ stored.  It can make some deductions from the database content though.
 
 ### common
 
-Utility classes for abstract handling of creditors, contracts etc.
+Utility classes for high-level handling of creditors, contracts etc.
 
-### dkhandleare out
+### dkhandle
 This module does more high-level handling of loans, such as interest
 calculations, calculations of important dates, changing loan conditions etc.
 

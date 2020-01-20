@@ -294,13 +294,89 @@ The ID of the new creditor.
         return creditor.id
 
     @_book_open
+    def update_creditor(self, creditor_id,
+                        name=None, phone=None, email=None,
+                        newsletter=None, address1=None, address2=None,
+                        address3=None, address4=None, book=None):
+        """Updates the creditor's entry in the database.
+
+Returns
+-------
+out: boolean
+True if something was updated, else False.
+        """
+        creditor = self.find_creditors(id=creditor_id)[0]
+        update = False
+        if name is not None:
+            creditor.name = name
+            update = True
+        if address1 is not None:
+            creditor.address1 = address1
+            update = True
+        if address2 is not None:
+            creditor.address2 = address2
+            update = True
+        if address3 is not None:
+            creditor.address3 = address3
+            update = True
+        if address4 is not None:
+            creditor.address4 = address4
+            update = True
+        if phone is not None:
+            creditor.phone = phone
+            print(creditor.phone)
+            update = True
+        if email is not None:
+            creditor.email = email
+            update = True
+        if newsletter is not None:
+            creditor.newsletter = newsletter
+            update = True
+        if update:
+            book.session.commit()
+            book.session.flush()
+            print(creditor)
+        return update
+
+    @_book_open
+    def find_creditors(self, book=None, **kwargs):
+        """Find creditors matching the given filters.
+
+Parameters
+----------
+
+**kwargs : SqlAlchemy filters
+  Filters which are passed on to SqlAlchemy's `filter_by` method:
+  https://docs.sqlalchemy.org/en/13/orm/query.html#sqlalchemy.orm.query.Query.filter_by
+
+Returns
+-------
+out : A tuple of creditors (automapped by SqlAlchemy).
+             """
+        engine = book.session.connection().engine
+        Base = automap_base()
+        Base.prepare(engine, reflect=True)
+        Creditor = _get_table(Base, "creditors")
+        return book.session.query(Creditor).filter_by(**kwargs)
+
+    @_book_open
+    def delete_creditor(self, creditor_id, book=None):
+        """Remove this creditor from the database."""
+        deleted = self.find_creditors(id=creditor_id).delete()
+        if deleted >= 2:
+            raise RuntimeError("Deleted more than one creditor, but only one "
+                               "should have existed.")
+        if deleted == 0:
+            raise ValueError("Tried to delete non-existent creditor.")
+
+    @_book_open
     def add_contract(self, contract_id, creditor, date, amount, interest,
                      interest_payment="payout", period_type="fixed_duration",
                      period_notice=None, period_end=None, version=None,
-                     book=None):
+                     cancellation_date=None, book=None):
         """Add a contract to the database.
 
-This also adds the correct account, if it does not exist yet.
+This also adds the correct account to GnuCash, if it does not exist yet.
 
 
 Parameters
@@ -342,6 +418,9 @@ The date at which the contract ends.  The exact meaning depends on the
 version : str, optional
 Version of the contract form.
 
+cancellation_date : datetime.date, optional
+The last date on which the contract is active, e.g. after a cancellation.
+
 Returns
 -------
 out : None
@@ -373,7 +452,7 @@ out : None
             date=date, amount=amount, interest=interest,
             interest_payment=interest_payment, period_type=period_type,
             period_notice=period_notice, period_end=period_end,
-            version=version, cancellation_date=None, active=True)
+            version=version, cancellation_date=cancellation_date, active=False)
         # import IPython; IPython.embed()
         book.session.add(contract)
 
@@ -392,48 +471,64 @@ out : None
             # Unhandled exception
             raise int_err
 
-
     @_book_open
-    def update_creditor(self, creditor_id,
-                        name=None, phone=None, email=None,
-                        newsletter=None, address1=None, address2=None,
-                        address3=None, address4=None, book=None):
-        """Updates the creditor's entry in the database."""
-        creditor = self.find_creditors(id=creditor_id)[0]
+    def update_contract(self, contract_id, creditor=None, date=None,
+                        amount=None, interest=None, interest_payment=None,
+                        period_type=None, period_notice=None, period_end=None,
+                        version=None, cancellation_date=None, active=None,
+                        book=None):
+        """Updates the contract's entry in the database.
+
+Returns
+-------
+out: boolean
+True if something was updated, else False.
+        """
+        contract = self.find_contracts(id=contract_id)[0]
         update = False
-        if name is not None:
-            creditor.name = name
+        if creditor is not None:
+            contract.creditor = creditor
             update = True
-        if address1 is not None:
-            creditor.address1 = address1
+        if date is not None:
+            contract.date = date
             update = True
-        if address2 is not None:
-            creditor.address2 = address2
+        if amount is not None:
+            contract.amount = amount
             update = True
-        if address3 is not None:
-            creditor.address3 = address3
+        if interest is not None:
+            contract.interest = interest
             update = True
-        if address4 is not None:
-            creditor.address4 = address4
+        if interest_payment is not None:
+            contract.interest_payment = interest_payment
             update = True
-        if phone is not None:
-            creditor.phone = phone
-            print(creditor.phone)
+        if period_type is not None:
+            contract.period_type = period_type
             update = True
-        if email is not None:
-            creditor.email = email
+        if period_notice is not None:
+            contract.period_notice = period_notice
             update = True
-        if newsletter is not None:
-            creditor.newsletter = newsletter
+        if period_end is not None:
+            contract.period_end = period_end
+            update = True
+        if version is not None:
+            contract.version = version
+            update = True
+        if cancellation_date is not None:
+            contract.cancellation_date = cancellation_date
+            update = True
+        if active is not None:
+            contract.active = active
             update = True
         if update:
             book.session.commit()
             book.session.flush()
             print(creditor)
+        return update
+
 
     @_book_open
-    def find_creditors(self, book=None, **kwargs):
-        """Find creditors matching the given filters.
+    def find_contracts(self, book=None, **kwargs):
+        """Find contracts matching the given filters.
 
 Parameters
 ----------
@@ -444,20 +539,20 @@ Parameters
 
 Returns
 -------
-out : A tuple of creditors (automapped by SqlAlchemy).
+out : A tuple of contracts (automapped by SqlAlchemy).
              """
         engine = book.session.connection().engine
         Base = automap_base()
         Base.prepare(engine, reflect=True)
-        Creditor = _get_table(Base, "creditors")
-        return book.session.query(Creditor).filter_by(**kwargs)
+        Contract = _get_table(Base, "contracts")
+        return book.session.query(Contract).filter_by(**kwargs)
 
     @_book_open
-    def delete_creditor(self, creditor_id, book=None):
-        """Remove this creditor from the database."""
-        deleted = self.find_creditors(id=creditor_id).delete()
+    def delete_contract(self, contract_id, book=None):
+        """Remove this contract from the database."""
+        deleted = self.find_contracts(id=contract_id).delete()
         if deleted >= 2:
-            raise RuntimeError("Deleted more than one creditor, but only one "
+            raise RuntimeError("Deleted more than one contract, but only one "
                                "should have existed.")
         if deleted == 0:
-            raise ValueError("Tried to delee non-existent creditor.")
+            raise ValueError("Tried to delete non-existent contract.")

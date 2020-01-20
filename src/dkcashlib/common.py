@@ -4,6 +4,16 @@
 from . import dkdata
 from .dkhandle import Connection
 
+def has_connection(fun):
+    """Make sure that a connection exists."""
+    def wrapped(self, *args, **kwargs):
+        if self.connection is None:
+            raise RuntimeError(
+                "Connection is None although is needs to be defined for "
+                "this method: {}".format(fun))
+        return fun(self, *args, **kwargs)
+    return wrapped
+
 
 class Creditor:
     """A creditor is a person who lends money.
@@ -62,6 +72,26 @@ insert : bool, optional
             self.insert()
 
     @staticmethod
+    def from_namespace(values, connection, insert=False):
+        """Create and return a Creditor from a namespace.
+
+By default, do not insert the Creditor because probably it exists already.
+        """
+        creditor = Creditor(name=values.name,
+                            address=(values.address1,
+                                     values.address2,
+                                     values.address3,
+                                     values.address4),
+                            phone=values.phone,
+                            email=values.email,
+                            newsletter=values.newsletter,
+                            connection=connection,
+                            insert=insert)
+        if not creditor.creditor_id:
+            creditor.creditor_id = values.id
+        return creditor
+
+    @staticmethod
     def retrieve(connection, creditor_id=None, name=None):
         """Retrieve a creditor from the database if a matching one can be found.
 
@@ -90,55 +120,35 @@ If no match is found, None is returned.
                                            connection=connection)
         return creditor
 
-    @staticmethod
-    def from_namespace(values, connection, insert=False):
-        """Create and return a Creditor from a namespace.
-
-By default, do not insert the Creditor because probably it exists already.
-"""
-        creditor = Creditor(name=values.name,
-                            address=(values.address1,
-                                     values.address2,
-                                     values.address3,
-                                     values.address4),
-                            phone=values.phone,
-                            email=values.email,
-                            newsletter=values.newsletter,
-                            connection=connection,
-                            insert=insert)
-        if not creditor.creditor_id:
-            creditor.creditor_id = values.id
-        return creditor
-
-    def insert(self, connection=None):
-        """Inserts the creditor into the database.
+    @has_connection
+    def insert(self):
+        """Insert the creditor into the database.
 
 Upon successful insertion, this also assigns the ID.
-"""
-        if connection is not None:
-            self.connection = connection
-        if self.connection is None:
-            raise RuntimeError(
-                "Connection is None although is needs to be defined for "
-                "inserting this object into the database.")
+        """
         creditor_id = self.connection._data.add_creditor(
             self.name, self.address, self.phone, self.email, self.newsletter)
         self.creditor_id = creditor_id
 
+    @has_connection
     def update(self, name=None, address=None, phone=None, email=None,
                newsletter=False):
-        """Updates the Creditor's properties (those which are not None).
+        """Update the Creditor's properties (those which are not None).
 
 The Creditor must be inserted already in the database, i.e. its ID must not be
 None.
 
 Note that address should be a 4 element list.
 
+Returns
+-------
+out: boolean
+True if something was updated, else False.
         """
         address1, address2, address3, address4 = [None] * 4
         if address is not None:
             address1, address2, address3, address4 = address
-        self.connection._data.update_creditor(
+        updated = self.connection._data.update_creditor(
             self.creditor_id, name=name, phone=phone, email=email,
             newsletter=newsletter,
             address1=address1, address2=address2, address3=address3,
@@ -152,20 +162,31 @@ Note that address should be a 4 element list.
         self.phone = reloaded.phone
         self.email = reloaded.email
         self.newsletter = reloaded.newsletter
+        return updated
 
+    @has_connection
     def delete(self, delete_contracts=False):
-        """Deletes this creditor from the database.
+        """Delete this creditor from the database.
 
 Parameters
 ----------
 delete_contracts : bool, optional
-    If contracts by this Creditor shall also be deleted.  Default is False.
-"""
-        raise NotImplementedError("TODO: Need to check for contracts.")
-        if self.connection is None:
-            raise RuntimeError(
-                "Connection is None although is needs to be defined for "
-                "deleting this object from the database.")
+    If contracts by this Creditor shall also be deleted.  Default is False.  If
+    False, an exception is raised if there are any contracts by this Creditor.
+        """
+        linked_contracts = Contract.find(self.connection, creditor=self)
+        print("linked:")
+        print(linked_contracts)
+        if linked_contracts:
+            if delete_contracts:
+                for contract in linked_contracts:
+                    print("Warning, deleting contract: {}".format(contract))
+                    contract.delete()
+            else:
+                raise RuntimeError(
+                    "Deleting the creditor {} failed, because there are still "
+                    "contracts linked to the creditor.".format(self))
+
         self.connection._data.delete_creditor(creditor_id=self.creditor_id)
 
 
@@ -179,6 +200,7 @@ integer (or can be converted to an integer).
     def __init__(self, contract_id, creditor, date, amount, interest,
                  interest_payment="payout", period_type="fixed_duration",
                  period_notice=None, period_end=None, version=None,
+                 cancellation_date=None,
                  connection=None, insert=True):
         """Create a contract, and may also immediately add it.
 
@@ -223,5 +245,213 @@ The date at which the contract ends.  The exact meaning depends on the
 
 version : str, optional
 Version of the contract form.
+
+cancellation_date : datetime.date, optional
+The last date on which the contract is active, e.g. after a cancellation.
+
         """
-        raise NotImplementedError()
+        if not str(int(contract_id)) == str(contract_id):
+            raise ValueError(
+                "`contract_id` must be an int or losslessly convertible")
+        self.contract_id = int(contract_id)
+        if type(creditor) == int:
+            self.creditor_id = creditor
+        else:
+            self.creditor_id = creditor.creditor_id
+        self.date = date
+        self.amount = amount
+        self.interest = interest
+        self.interest_payment = interest_payment
+        self.period_type = period_type
+        self.period_notice = period_notice
+        self.period_end = period_end
+        self.cancellation_date = cancellation_date
+        self.version = version
+        self.connection = connection
+        self._validate_attributes()
+
+        if insert:
+            self.insert()
+
+    def _validate_attributes(self):
+        """Validate the attributes, especially for the different period types.
+
+Raise exceptions or print warnings for invalid or unusual attributes.
+        """
+        assert self.creditor_id is not None
+        assert self.date is not None
+        assert self.amount is not None
+        assert self.amount >= 0.0
+        assert self.interest is not None
+        assert self.interest >= 0.0
+        assert self.interest_payment in ("payout", "cumulative", "reinvest")
+        if self.period_type == "fixed_duration":
+            if self.period_end is None:
+                raise ValueError('If "period type" is `fixed_duration`, '
+                                 '`period_end` must be given.')
+            if self.period_notice is not None:
+                print("Warning, `period_notice` has no effect for fixed "
+                      "duration period type.")
+        elif self.period_type == "fixed_period_notice":
+            if self.period_notice is None:
+                raise ValueError('If "period type" is `fixed_period_notice`, '
+                                 '`period_notice` must be given.')
+            if self.period_end is not None:
+                print('Warning, `period_end` has no effect for period type '
+                      '"fixed period notice".')
+        elif self.period_type == "initial_plus_n":
+            if self.period_notice is None:
+                raise ValueError('If "period type" is `initial_plus_n`, '
+                                 '`period_notice` must be given.')
+            if self.period_end is None:
+                raise ValueError('If "period type" is `initial_plus_n`, '
+                                 '`period_end` must be given.')
+        else:
+            raise ValueError("Unknown `period_type` argument.")
+
+    @has_connection
+    def insert(self):
+        """Insert the Contract into the database."""
+
+        self.connection._data.add_contract(
+            contract_id=self.contract_id, creditor=self.creditor_id,
+            date=self.date, amount=self.amount, interest=self.interest,
+            interest_payment=self.interest_payment, period_type=self.period_type,
+            period_notice=self.period_notice, period_end=self.period_end,
+            version=self.version)
+
+    @staticmethod
+    def from_namespace(values, connection, insert=False):
+        """Create and return a Contract from a namespace.
+
+By default, do not insert the Contract because probably it exists already.
+        """
+        # for k, v in values.__dict__.items():
+        #     print("{}:\t{}".format(k,v))
+        contract = Contract(contract_id=values.id,
+                            creditor=values.creditor,
+                            date=values.date,
+                            amount=values.amount,
+                            interest=values.interest,
+                            interest_payment=values.interest_payment,
+                            period_type=values.period_type,
+                            period_notice=values.period_notice,
+                            period_end=values.period_end,
+                            version=values.version,
+                            cancellation_date=values.cancellation_date,
+                            connection=connection, insert=insert)
+        return contract
+
+    @staticmethod
+    def retrieve(connection, contract_id=None,  creditor_id=None):
+        """Retrieve a contract from the database if a matching one can be found.
+
+At least one of the specifying arguments must be given.  Only exact matches are
+returned.  If more than one contract fits the given criteria, a RuntimeError is
+raised.
+
+If no match is found, None is returned.
+        """
+        if contract_id is None and creditor_id is None:
+            raise ValueError("At least one of the two IDs must be given!")
+        filters = {}
+        if contract_id is not None:
+            filters["id"] = contract_id
+        if creditor_id is not None:
+            filters["creditor"] = creditor_id
+        query_result = connection._data.find_contracts(**filters)
+        if query_result.count() == 0:
+            print("No results found.")
+            return None
+        if query_result.count() > 1:
+            raise RuntimeError(
+                "Warning: more than one match found for `{}`.".format(filters))
+        contract = Contract.from_namespace(query_result.first(),
+                                           connection=connection)
+        return contract
+
+    @staticmethod
+    def find(connection, contract_id=None, creditor=None, date=None,
+             amount=None, interest=None, interest_payment=None,
+             period_type=None, period_notice=None, period_end=None,
+             version=None):
+        """Retrieve all matching contracts from the database.
+
+At least one of the specifying arguments must be given.  Only exact matches are
+returned.
+
+Returns
+-------
+A tuple with the found contracts.
+        """
+        filters = {}
+        if contract_id is not None:
+            filters["id"] = contract_id
+        if creditor is not None:
+            if isinstance(creditor, Creditor):
+                creditor = creditor.creditor_id
+            filters["creditor"] = creditor
+        contracts = connection._data.find_contracts(**filters)
+        contracts = [Contract.from_namespace(x, connection=connection) for x in
+                     contracts]
+        return contracts
+
+    def update(self, contract_id=None, creditor=None, date=None, amount=None,
+               interest=None, interest_payment=None, period_type=None,
+               period_notice=None, period_end=None, version=None,
+               cancellation_date=None, active=None):
+        """Update the Contract's properties (those which are not None).
+
+The Contract must be inserted already in the database.
+
+Note that this "retroactively" changes all values without noting the date of
+change, which may not always be what you want.  For example for changing the
+interest rate at a later time, it may be better to cancel the contract and
+create a new contract instead.
+
+Returns
+-------
+out: boolean
+True if something was updated, else False.
+        """
+        if isinstance(creditor, Creditor):
+            creditor_id = creditor.creditor_id
+        else:
+            creditor_id = creditor
+
+        updated = self.connection._data.update_contract(
+            self.contract_id,
+            creditor=creditor_id, date=date,
+            amount=amount, interest=interest,
+            interest_payment=interest_payment,
+            period_type=period_type,
+            period_notice=period_notice,
+            period_end=period_end,
+            version=version,
+            cancellation_date=cancellation_date,
+            active=active)
+        reloaded = self.connection._data.find_contracts(id=self.contract_id)[0]
+        self.creditor_id = reloaded.creditor
+        self.date = reloaded.date
+        self.amount = reloaded.amount
+        self.interest = reloaded.interest
+        self.interest_payment = reloaded.interest_payment
+        self.interest_payment = reloaded.interest_payment
+        self.period_type = reloaded.period_type
+        self.period_notice = reloaded.period_notice
+        self.period_end = reloaded.period_end
+        self.cancellation_date = reloaded.cancellation_date
+        self.version = reloaded.version
+
+        return updated
+
+    def delete(self):
+        """Delete this Contract from the database.
+
+Returns
+----------
+out : int
+    The creditor ID of this contract.
+        """
+        self.connection._data.delete_contract(contract_id=self.contract_id)
+        return self.creditor_id

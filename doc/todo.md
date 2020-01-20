@@ -3,14 +3,15 @@
 - [-] Implement Creditor
   - [X] Constructor
   - [X] Insertion into database
-  - [X] Update
   - [X] Retrieve from database
+  - [X] Update
   - [ ] Delete
 - [ ] Implement Contract class
   - [ ] Constructor
   - [ ] Insertion into database
-  - [ ] Update
   - [ ] Retrieve
+  - [ ] Find
+  - [ ] Update
   - [ ] Delete?
 - [ ] Specify dkhandle
   - [ ] Define user stories to be covered

@@ -4,7 +4,7 @@
 Call e.g. with `pytest` (for Python3).
 """
 
-# import argparse
+import datetime
 # import os
 # import pathlib2
 import pytest
@@ -16,7 +16,7 @@ import unittest
 from dkcashlib import common
 from dkcashlib import dkhandle
 
-from dkcashlib.common import Creditor
+from dkcashlib.common import Creditor, Contract
 
 @pytest.fixture
 def connection(tmp_path):
@@ -110,4 +110,48 @@ def test_creditor_retrieval(connection):
     assert retrieved.address == address
 
 def test_contract(connection):
-    pass
+    """Test creation and insertion of contracts."""
+    address = ("Geldspeicher 1", "12345 Entenhausen", "", "")
+    creditor = Creditor("Dagobert Duck", address, connection=connection)
+    contract_id = "4223"
+    date = "2019-01-01"
+    amount = 3.1416e12
+    interest = 20.0
+    interest_payment = "reinvest"
+    period_type="initial_plus_n"
+    period_notice = "1-06" # 1 year 6 months
+    period_end = datetime.date.today()
+    version = "1.0"
+
+    contract_local = Contract(
+        contract_id=contract_id, creditor=creditor, date=date, amount=amount,
+        interest=interest, interest_payment=interest_payment,
+        period_type=period_type, period_notice=period_notice,
+        period_end=period_end, version=version, connection=connection,
+        insert=False)
+    assert (Contract.retrieve(connection=connection, contract_id=contract_id)
+            is None)
+    contract_local.insert()
+
+    retrieved = Contract.retrieve(connection=connection,
+                                  contract_id=contract_id)
+    assert retrieved is not None
+    assert retrieved.amount == amount
+
+    with unittest.TestCase().assertRaises(RuntimeError):
+        # Inserting the same contract ID again.
+        retrieved.insert()
+
+    new_amount = 23.00
+    print(retrieved)
+    retrieved.update(amount=new_amount)
+
+    new_retrieved = Contract.retrieve(connection=connection,
+                                      contract_id=contract_id)
+    assert new_retrieved is not None
+    assert new_retrieved.amount == new_amount
+
+    new_retrieved.delete()
+    assert (Contract.retrieve(connection=connection, contract_id=contract_id)
+            is None)
+
