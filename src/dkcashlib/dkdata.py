@@ -69,10 +69,62 @@ def _book_open(func):
 
     return wrap
 
+
 def _get_table(base, tablename):
     Table = base.classes[tablename]
     Table.object_to_validate = lambda *x: []
     return Table
+
+
+def _extract_like(**kwargs):
+    """Split the arguments into "normal" and "LIKE"-like arguments.
+
+Returns
+-------
+
+verbatim_filters: dict
+    The "normal" arguments.
+
+like_filters: dict
+    The "LIKE"-like arguments, with `*` replaced by `%`.
+    """
+    verbatim_filters = {}
+    like_filters = {}
+    for key, value in kwargs.items():
+        if isinstance(value, str) and "*" in value:
+            like_value = value.replace("*", "%")
+            like_filters[key] = like_value
+        else:
+            verbatim_filters[key] = value
+    return verbatim_filters, like_filters
+
+
+def _filter_flexible(query, smap, **kwargs):
+    """Apply `kwargs` as additional filters to the query.
+
+Parameters
+----------
+query: Query
+The Query to be filtered.
+
+smap: sqlalchemy map class
+The class in whose context the kwargs are to be interpreted.
+
+kwargs:
+_extract_like() is used to split these into exact and pattern matching values.
+
+
+Returns
+-------
+query: Query
+Filtered Query object.
+    """
+    verbatim_filters, like_filters = _extract_like(**kwargs)
+    columns =smap.__dict__
+    likes = [columns[key].like(value) for key, value in like_filters.items()]
+    filtered_query = query.filter_by(**verbatim_filters).filter(*likes)
+    return filtered_query
+
 
 class DKData:
 
@@ -346,18 +398,27 @@ Parameters
 ----------
 
 **kwargs : SqlAlchemy filters
-  Filters which are passed on to SqlAlchemy's `filter_by` method:
-  https://docs.sqlalchemy.org/en/13/orm/query.html#sqlalchemy.orm.query.Query.filter_by
+    Filters which are passed on to SqlAlchemy's `filter_by` method:
+    https://docs.sqlalchemy.org/en/13/orm/query.html#sqlalchemy.orm.query.Query.filter_by
+    Normally, string filter values are interpreted verbatim, but if they contain
+    a `*`, they are interpreted as `LIKE` pattern expressions and matched
+    accordingly.
 
 Returns
 -------
-out : A tuple of creditors (automapped by SqlAlchemy).
-             """
+out : Query
+An iterable of contracts (automapped by SqlAlchemy).
+        """
         engine = book.session.connection().engine
         Base = automap_base()
         Base.prepare(engine, reflect=True)
         Creditor = _get_table(Base, "creditors")
-        return book.session.query(Creditor).filter_by(**kwargs)
+        if "address" in kwargs:
+            raise NotImplementedError(
+                "Special handling for generic address expr not implemented.")
+        filtered = _filter_flexible(book.session.query(Creditor), Creditor,
+                                    **kwargs)
+        return filtered
 
     @_book_open
     def delete_creditor(self, creditor_id, book=None):
@@ -534,18 +595,25 @@ Parameters
 ----------
 
 **kwargs : SqlAlchemy filters
-  Filters which are passed on to SqlAlchemy's `filter_by` method:
-  https://docs.sqlalchemy.org/en/13/orm/query.html#sqlalchemy.orm.query.Query.filter_by
+    Filters which are passed on to SqlAlchemy's `filter_by` method:
+    https://docs.sqlalchemy.org/en/13/orm/query.html#sqlalchemy.orm.query.Query.filter_by
+    Normally, string filter values are interpreted verbatim, but if they contain
+    a `*`, they are interpreted as `LIKE` pattern expressions and matched
+    accordingly.
+
 
 Returns
 -------
-out : A tuple of contracts (automapped by SqlAlchemy).
+out : Query
+An iterable of contracts (automapped by SqlAlchemy).
              """
         engine = book.session.connection().engine
         Base = automap_base()
         Base.prepare(engine, reflect=True)
         Contract = _get_table(Base, "contracts")
-        return book.session.query(Contract).filter_by(**kwargs)
+        filtered = _filter_flexible(book.session.query(Contract), Contract,
+                                    **kwargs)
+        return filtered
 
     @_book_open
     def delete_contract(self, contract_id, book=None):

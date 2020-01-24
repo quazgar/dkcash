@@ -92,6 +92,33 @@ By default, do not insert the Creditor because probably it exists already.
         return creditor
 
     @staticmethod
+    def find(connection, creditor_id=None, name=None, address=None, phone=None,
+             email=None, newsletter=None):
+        """Retrieve all matching creditors from the database.
+
+At least one of the specifying arguments must be given.  Only exact matches are
+returned.  The address
+
+Returns
+-------
+A tuple with the found contracts.
+        """
+        filters = {}
+        if creditor_id is not None:
+            filters["id"] = creditor_id
+        # if creditor is not None:
+        #     if isinstance(creditor, Creditor):
+        #         creditor = creditor.creditor_id
+        #     filters["creditor"] = creditor
+        contracts = connection._data.find_creditors(**filters)
+        contracts = connection._data.find_contracts(**filters)
+        contracts = [Contract.from_namespace(x, connection=connection) for x in
+                     contracts]
+        return contracts
+
+
+
+    @staticmethod
     def retrieve(connection, creditor_id=None, name=None):
         """Retrieve a creditor from the database if a matching one can be found.
 

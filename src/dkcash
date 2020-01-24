@@ -47,6 +47,7 @@ def main():
     retrieved = Contract.retrieve(connection=connection,
                                   contract_id="2038")
 
+    Creditor.find(connection=connection)
     import IPython; IPython.embed()
 
 

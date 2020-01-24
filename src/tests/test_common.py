@@ -8,7 +8,8 @@ import datetime
 # import os
 # import pathlib2
 import pytest
-# import sys
+import random
+import sys
 import unittest
 
 # from datetime import date
@@ -23,6 +24,29 @@ def connection(tmp_path):
     filename = tmp_path / "test.gnucash"
     conn = dkhandle.Connection(gnucash_file=str(filename))
     return conn
+
+def _create_contract(creditor, connection, number=None):
+    """Create and return a different contract for different numbers."""
+    if number is None:
+        number = random.randint(0, sys.maxsize)
+    contract_id = number
+    date = "2019-01-{}".format(number % 31 + 1)
+    amount = number / 100
+    interest = number % 10 / 10
+    interest_payment = "reinvest"
+    period_type="initial_plus_n"
+    period_notice = "1-06" # 1 year 6 months
+    period_end = datetime.date.today()
+    version = "1.0"
+
+    contract = Contract(
+        contract_id=contract_id, creditor=creditor, date=date, amount=amount,
+        interest=interest, interest_payment=interest_payment,
+        period_type=period_type, period_notice=period_notice,
+        period_end=period_end, version=version, connection=connection,
+        insert=False)
+
+    return contract
 
 
 def test_creditor(connection):
@@ -55,32 +79,6 @@ def test_creditor(connection):
     assert dagobert_dup.creditor_id == creditor_dagobert.creditor_id
 
 
-def test_creditor_delete(connection):
-    """Test if deletion works."""
-    # Set up creditor
-    address = ("Geldspeicher 1", "12345 Entenhausen", "", "")
-    creditor_dagobert = Creditor(
-        "Dagobert Duck", address,
-        connection=connection, insert=True)
-    assert creditor_dagobert.creditor_id is not None
-
-    creditor_id = creditor_dagobert.creditor_id
-    creditor_dagobert.delete()
-
-    # Try to retrieve it again
-    retrieved = Creditor.retrieve(connection=connection,
-                                  creditor_id=creditor_id)
-    assert retrieved is None
-
-    # Deleting a second time should not work
-    with unittest.TestCase().assertRaises(ValueError):
-        creditor = creditor_dagobert.delete()
-
-    creditor_no_connection = Creditor("No Connection", address, insert=False)
-    with unittest.TestCase().assertRaises(RuntimeError):
-        creditor = creditor_no_connection.delete()
-
-
 def test_creditor_retrieval(connection):
     """Test if retrieval works."""
 
@@ -108,6 +106,42 @@ def test_creditor_retrieval(connection):
                                   name=dago_name)
     assert retrieved is not None
     assert retrieved.address == address
+
+
+def test_creditor_delete(connection):
+    """Test if deletion works."""
+    # Set up creditor
+    address = ("Geldspeicher 1", "12345 Entenhausen", "", "")
+    creditor_dagobert = Creditor(
+        "Dagobert Duck", address,
+        connection=connection, insert=True)
+    assert creditor_dagobert.creditor_id is not None
+
+    # Delete creditor
+    creditor_id = creditor_dagobert.creditor_id
+    creditor_dagobert.delete()
+
+    # Insert again, add contract, then delete both
+    creditor_dagobert.insert()
+    contract = _create_contract(creditor_dagobert, connection=connection)
+    contract.insert()
+    with unittest.TestCase().assertRaises(RuntimeError):
+        creditor = creditor_dagobert.delete()
+    creditor_dagobert.delete(delete_contracts=True)
+
+    # Try to retrieve it again
+    retrieved = Creditor.retrieve(connection=connection,
+                                  creditor_id=creditor_id)
+    assert retrieved is None
+
+    # Deleting a second time should not work
+    with unittest.TestCase().assertRaises(ValueError):
+        creditor = creditor_dagobert.delete()
+
+    creditor_no_connection = Creditor("No Connection", address, insert=False)
+    with unittest.TestCase().assertRaises(RuntimeError):
+        creditor = creditor_no_connection.delete()
+
 
 def test_contract(connection):
     """Test creation and insertion of contracts."""

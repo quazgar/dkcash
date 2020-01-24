@@ -32,9 +32,9 @@ base_account : String, optional
     `Aktiva:DKVerwaltung`.
 
         """
-        self._data = dkdata.DKData( gnucash_file=gnucash_file, base_dk=base_dk,
-                                    base_ausgleich=base_ausgleich,
-                                    base_zinsen=base_zinsen)
+        self._data = dkdata.DKData(gnucash_file=gnucash_file, base_dk=base_dk,
+                                   base_ausgleich=base_ausgleich,
+                                   base_zinsen=base_zinsen)
 
     ###########################################################################
     # The following methods are just some ideas what should be(come) possible #
