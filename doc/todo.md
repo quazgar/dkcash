@@ -1,18 +1,18 @@
 # Next TODOs #
 
-- [-] Implement Creditor
+- [X] Implement Creditor
   - [X] Constructor
   - [X] Insertion into database
   - [X] Retrieve from database
   - [X] Update
-  - [ ] Delete
-- [ ] Implement Contract class
-  - [ ] Constructor
-  - [ ] Insertion into database
-  - [ ] Retrieve
-  - [ ] Find
-  - [ ] Update
-  - [ ] Delete?
+  - [X] Delete
+- [X] Implement Contract class
+  - [X] Constructor
+  - [X] Insertion into database
+  - [X] Retrieve
+  - [X] Find
+  - [X] Update
+  - [X] Delete?
 - [ ] Specify dkhandle
   - [ ] Define user stories to be covered
   - [ ] Define classes, methods to cover the user stories

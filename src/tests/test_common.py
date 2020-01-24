@@ -25,6 +25,7 @@ def connection(tmp_path):
     conn = dkhandle.Connection(gnucash_file=str(filename))
     return conn
 
+
 def _create_contract(creditor, connection, number=None):
     """Create and return a different contract for different numbers."""
     if number is None:
@@ -47,6 +48,17 @@ def _create_contract(creditor, connection, number=None):
         insert=False)
 
     return contract
+
+
+def _create_creditor(connection, number=None):
+    """Create and return a different creditor for different numbers."""
+    if number is None:
+        number = random.randint(0, sys.maxsize)
+    creditor = Creditor("Creditor {}".format(number),
+                        ["Street {}".format(number),
+                         "{} Entenhausen".format(number)],
+                        connection=connection)
+    return creditor
 
 
 def test_creditor(connection):
@@ -145,8 +157,7 @@ def test_creditor_delete(connection):
 
 def test_contract(connection):
     """Test creation and insertion of contracts."""
-    address = ("Geldspeicher 1", "12345 Entenhausen", "", "")
-    creditor = Creditor("Dagobert Duck", address, connection=connection)
+    creditor = _create_creditor(connection=connection)
     contract_id = "4223"
     date = "2019-01-01"
     amount = 3.1416e12
@@ -189,3 +200,12 @@ def test_contract(connection):
     assert (Contract.retrieve(connection=connection, contract_id=contract_id)
             is None)
 
+def test_contract_delete(connection):
+    """Test contract deletion."""
+    creditor = _create_creditor(connection=connection)
+    creditor.insert()
+    contract = _create_contract(creditor, connection=connection)
+    contract.insert()
+
+    # delete the contract
+    contract.delete()
