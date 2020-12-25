@@ -29,7 +29,8 @@ for command line functionality.
 This module handles the database.  It connects to a GnuCash database or creates
 a new one. It handles and writes "dumb" transactions such as creations,
 deletions, increases or decreases of loans or interest payments.  To the
-outside, it presents an object-oriented model of the loans.
+outside, it presents an object-oriented model of the loans (in the `common`
+module).
 
 It needs specific information where in the database exactly the loans are to be
 stored.  It can make some deductions from the database content though.
@@ -39,6 +40,7 @@ stored.  It can make some deductions from the database content though.
 Utility classes for high-level handling of creditors, contracts etc.
 
 ### dkhandle
+
 This module does more high-level handling of loans, such as interest
 calculations, calculations of important dates, changing loan conditions etc.
 
@@ -61,8 +63,9 @@ calculations, calculations of important dates, changing loan conditions etc.
 
 ## Particular modules
 Detailed documentation can be found in separate locations:
-- [dkhandle.md](dkhandle)
-- [dkdata.md](dkdata)
-- [dkgui.md](dkgui)
-- [db_schema.md](database schema)
+- [`common` library, home of the `Creditor` and `Contract` classes](common.md)
+- [dkhandle](dkhandle.md)
+- [dkdata.md](dkdata.md)
+- [dkgui](dkgui.md)
+- [database schema](db_schema.md)
 

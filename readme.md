@@ -7,9 +7,10 @@ auch von GnuCash geöffnet und verarbeitet werden kann.
 # Anforderungen
 ## Installation
 - Einfach installierbar über `setup.py` oder `pip3 install`.  Eine
-  Installationsanleitung befindet sich in install.org.
+  Installationsanleitung befindet sich in `install.md`.
 - Für Windows, Mac und (die üblichen) Linux(distributionen) existieren auch
   "Ein-Klick-Skripte" zur Installation.
+
 ## Export- und Reportoptionen
 - Weiterbearbeitung der Darlehenskonten mit GnuCash.
 - Export der Konten nach ods.
@@ -21,10 +22,10 @@ Qt als GUI-Toolkit über PyQt, wird auf allen üblichen Systemen unterstützt.
 
 ## Backend
 - GnuCash-kompatible Sqlite-Datenbank, Zugriff über
-  [https://github.com/sdementen/piecash](piecash).
+  [piecash](https://github.com/sdementen/piecash).
 - Piecash-Funktionen verwenden für:
   - Ein Unterkonto pro Kreditvertrag
-  - Ein-/Auszahlungen für jeden Kreditvertrag
+  - Ein-/Auszahlungen, auch Zinsen, für jeden Kreditvertrag.
 - Extra-Tabellen in Datenbank für:
   - Kreditgeber*innen: Name, Kontaktdaten, Einverständnis für Newsletter
   - Kreditverträge: Vertragsnummer, Datum, Laufzeitinformationen

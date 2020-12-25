@@ -62,28 +62,31 @@ created if they do not exist yet.  These additional tables are:
 | newsletter | bool     | True     | False   | may newsletter be sent? |
 
 ## contracts
-| name              | type            | required | default | comment           |
-|-------------------+-----------------+----------+---------+-------------------|
-| id                | str(10)         | True     |         | same as on paper  |
-|-------------------+-----------------+----------+---------+-------------------|
-| creditor          | cred.id         | True     |         | foreign key       |
-| account           | accounts.guid   | True     |         | foreign key       |
-| date              | str(YYYY-MM-DD) | True     |         | last signature    |
-| amount            | float           | True     |         |                   |
-| interest          | float           | True     |         | as percent        |
-| interest_payment  | str [1]         | True     |         |                   |
-| version           | str             | False    |         |                   |
-|-------------------+-----------------+----------+---------+-------------------|
-| period_type       | str [2]         | True     |         | see explanation   |
-| period_notice     | str(YYYY-MM-DD) | [3]      |         | cancel notice     |
-| period_end        | str(YYYY-MM-DD) | [3]      |         | fixed end         |
-|-------------------+-----------------+----------+---------+-------------------|
-| cancellation_date | str(YYYY-MM-DD) | False    | NULL    | end of contract   |
-| active            | bool            | True     | True    | False if canceled |
+| name                | type            | required | default | comment           |
+|---------------------|-----------------|----------|---------|-------------------|
+| id                  | str(10)         | True     |         | same as on paper  |
+| `minor_id`          | str(3)          | False    | NULL    | sub-version [1]   |
+|---------------------|-----------------|----------|---------|-------------------|
+| creditor            | cred.id         | True     |         | foreign key       |
+| account             | accounts.guid   | True     |         | foreign key       |
+| date                | str(YYYY-MM-DD) | True     |         | last signature    |
+| amount              | float           | True     |         |                   |
+| interest            | float           | True     |         | as percent        |
+| `interest_payment`  | str [2]         | True     |         |                   |
+| version             | str             | False    |         |                   |
+|---------------------|-----------------|----------|---------|-------------------|
+| period_type         | str [3]         | True     |         | see explanation   |
+| period_notice       | str(YYYY-MM-DD) | [4]      |         | cancel notice     |
+| period_end          | str(YYYY-MM-DD) | [4]      |         | fixed end         |
+|---------------------|-----------------|----------|---------|-------------------|
+| `cancellation_date` | str(YYYY-MM-DD) | False    | NULL    | end of contract   |
+| active              | bool            | True     | True    | False if canceled |
 
-1. One of: payout, cumulative, reinvest
-2. One of: fixed_duration, fixed_period_notice, initial_plus_n
-3. The required columns in this section depend on the period type, the period
+1. The final ID will be extended like `${ID}.${MINOR}`, where minor is
+   1,2,3,..., to indicate new sub-versions of the same contract.
+2. One of: payout, cumulative, reinvest
+3. One of: fixed_duration, fixed_period_notice, initial_plus_n
+4. The required columns in this section depend on the period type, the period
    type also defines the meaning of these columns.
 
 ### Period type of contracts
