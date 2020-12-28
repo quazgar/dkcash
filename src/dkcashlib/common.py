@@ -223,13 +223,23 @@ class Contract:
 The Contract ID is the same as on the written contract, it must be a unique
 integer (or can be converted to an integer).
 
+Implementation
+--------------
+
+Internally, a ``Contract`` consists mainly of a sequence of states, orderd by
+date.  Each state is completely self-sufficient, so no prior states necessary to
+infer any information.  If there is no state stored for a certain time, the
+parameters (run time, interest rate, etc.) of the contract do not change,
+although the accumulated interest may change over time of course.
+
     """
+
     def __init__(self, contract_id, creditor, date, amount, interest,
                  interest_payment="payout", period_type="fixed_duration",
                  period_notice=None, period_end=None, version=None,
                  cancellation_date=None,
                  connection=None, insert=True):
-        """Create a contract, and may also immediately add it.
+        """Create a contract, and optionally also immediately add it.
 
 If no ID is given, it will be assigned upon insertion into the database.
 
@@ -285,16 +295,12 @@ The last date on which the contract is active, e.g. after a cancellation.
             self.creditor_id = creditor
         else:
             self.creditor_id = creditor.creditor_id
-        self.date = date
-        self.amount = amount
-        self.interest = interest
-        self.interest_payment = interest_payment
-        self.period_type = period_type
-        self.period_notice = period_notice
-        self.period_end = period_end
-        self.cancellation_date = cancellation_date
-        self.version = version
-        self.connection = connection
+        self._initial_state = _State(
+            date=date, amount=amount, interest=interest, interest_payment=interest_payment,
+            period_type=period_type, period_notice=period_notice, period_end=period_end,
+            cancellation_date=cancellation_date, version=version)
+        self._states = {date: self._initial_state}
+        self.connection=connection
         self._validate_attributes()
 
         if insert:
@@ -306,35 +312,6 @@ The last date on which the contract is active, e.g. after a cancellation.
 Raise exceptions or print warnings for invalid or unusual attributes.
         """
         assert self.creditor_id is not None
-        assert self.date is not None
-        assert self.amount is not None
-        assert self.amount >= 0.0
-        assert self.interest is not None
-        assert self.interest >= 0.0
-        assert self.interest_payment in ("payout", "cumulative", "reinvest")
-        if self.period_type == "fixed_duration":
-            if self.period_end is None:
-                raise ValueError('If "period type" is `fixed_duration`, '
-                                 '`period_end` must be given.')
-            if self.period_notice is not None:
-                print("Warning, `period_notice` has no effect for fixed "
-                      "duration period type.")
-        elif self.period_type == "fixed_period_notice":
-            if self.period_notice is None:
-                raise ValueError('If "period type" is `fixed_period_notice`, '
-                                 '`period_notice` must be given.')
-            if self.period_end is not None:
-                print('Warning, `period_end` has no effect for period type '
-                      '"fixed period notice".')
-        elif self.period_type == "initial_plus_n":
-            if self.period_notice is None:
-                raise ValueError('If "period type" is `initial_plus_n`, '
-                                 '`period_notice` must be given.')
-            if self.period_end is None:
-                raise ValueError('If "period type" is `initial_plus_n`, '
-                                 '`period_end` must be given.')
-        else:
-            raise ValueError("Unknown `period_type` argument.")
 
     @has_connection
     def insert(self):
@@ -482,3 +459,58 @@ out : int
         """
         self.connection._data.delete_contract(contract_id=self.contract_id)
         return self.creditor_id
+
+
+class _State:
+    def __init__(self, date, amount, interest, interest_payment="payout",
+                 period_type="fixed_duration", period_notice=None,
+                 period_end=None, version=None, cancellation_date=None,
+                 balance=0.0):
+        self.date = date
+        self.amount = amount
+        self.interest = interest
+        self.interest_payment = interest_payment
+        self.period_type = period_type
+        self.period_notice = period_notice
+        self.period_end = period_end
+        self.version = version
+        self.cancellation_date = cancellation_date
+        self.balance = balance
+
+    def _validate_attributes(self):
+        """Validate the attributes, especially for the different period types.
+
+Raise exceptions or print warnings for invalid or unusual attributes.
+        """
+        assert self.date is not None
+        assert self.amount is not None
+        assert self.amount >= 0.0
+        assert self.balance is not None
+        assert self.balance >= 0.0
+        assert self.interest is not None
+        assert self.interest >= 0.0
+        assert self.interest_payment in ("payout", "cumulative", "reinvest")
+        if self.period_type == "fixed_duration":
+            if self.period_end is None:
+                raise ValueError('If "period type" is `fixed_duration`, '
+                                 '`period_end` must be given.')
+            if self.period_notice is not None:
+                print("Warning, `period_notice` has no effect for fixed "
+                      "duration period type.")
+        elif self.period_type == "fixed_period_notice":
+            if self.period_notice is None:
+                raise ValueError('If "period type" is `fixed_period_notice`, '
+                                 '`period_notice` must be given.')
+            if self.period_end is not None:
+                print('Warning, `period_end` has no effect for period type '
+                      '"fixed period notice".')
+        elif self.period_type == "initial_plus_n":
+            if self.period_notice is None:
+                raise ValueError('If "period type" is `initial_plus_n`, '
+                                 '`period_notice` must be given.')
+            if self.period_end is None:
+                raise ValueError('If "period type" is `initial_plus_n`, '
+                                 '`period_end` must be given.')
+        else:
+            raise ValueError("Unknown `period_type` argument.")
+
